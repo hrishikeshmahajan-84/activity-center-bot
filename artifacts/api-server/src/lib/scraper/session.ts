@@ -166,11 +166,18 @@ async function isAuthenticated(p: Page): Promise<boolean> {
     // Must be on the correct site, not some redirect to an error page.
     if (!url.includes("activecommunities.com") && !url.includes("apm.")) return false;
 
-    // Look for any sign-in link that only appears when logged out.
-    const signInLinks = await p
-      .locator('a[href*="signin"], a[href*="login"], button:has-text("Sign in")')
-      .count();
-    return signInLinks === 0;
+    // Ask the site itself: this lightweight REST endpoint returns code "0000"
+    // only for an authenticated session. Far more reliable than probing the
+    // DOM for sign-in links (which can appear in menus even when logged in).
+    const code = await p.evaluate(async (siteUrl: string) => {
+      const r = await fetch(`${siteUrl}/rest/myaccount/familyschedules/filters?locale=en-US`, {
+        credentials: "include",
+        signal: AbortSignal.timeout(10_000),
+      });
+      const j = (await r.json()) as { headers?: { response_code?: string } };
+      return j.headers?.response_code ?? null;
+    }, SITE_URL);
+    return code === "0000";
   } catch {
     return false;
   }
@@ -191,10 +198,14 @@ async function login(p: Page): Promise<void> {
   await p.goto(`${SITE_URL}/signin`, { waitUntil: "networkidle", timeout: 30_000 });
 
   // If the session cookie is still valid, the signin page redirects straight
-  // back to the account area — we're already logged in.
+  // back to the account area — we're already logged in. Verify the destination
+  // actually looks authenticated rather than trusting any non-signin URL.
   if (!p.url().includes("/signin") && !p.url().includes("/login")) {
-    logger.info({ url: p.url() }, "Already logged in – signin redirected to account");
-    return;
+    if (await isAuthenticated(p)) {
+      logger.info({ url: p.url() }, "Already logged in – signin redirected to account");
+      return;
+    }
+    throw new Error(`Login page redirected to unexpected unauthenticated URL: ${p.url()}`);
   }
 
   // Fill email – try multiple selector strategies
@@ -206,7 +217,7 @@ async function login(p: Page): Promise<void> {
   } catch (err) {
     // Late redirect race: field never appeared because we got bounced to the
     // account page after the initial URL check.
-    if (!p.url().includes("/signin") && !p.url().includes("/login")) {
+    if (!p.url().includes("/signin") && !p.url().includes("/login") && (await isAuthenticated(p))) {
       logger.info({ url: p.url() }, "Already logged in – signin redirected during wait");
       return;
     }

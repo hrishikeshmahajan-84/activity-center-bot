@@ -44,9 +44,11 @@ interface FamilyScheduleEntry {
 async function readViaApi(page: Page): Promise<ScrapedRegistration[] | null> {
   const today = new Date();
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  // Fetch the next 8 weeks in one-week chunks (the SPA requests week ranges).
+  // Fetch a wide window in one-week chunks (the SPA requests week ranges):
+  // ~12 weeks back to catch already-completed activities this season, and
+  // ~16 weeks forward to catch everything already booked ahead.
   const entries: FamilyScheduleEntry[] = [];
-  for (let week = 0; week < 8; week++) {
+  for (let week = -12; week < 16; week++) {
     const start = new Date(today.getTime() + week * 7 * 86_400_000);
     const end = new Date(start.getTime() + 6 * 86_400_000);
     const url =
@@ -128,14 +130,18 @@ async function readViaApi(page: Page): Promise<ScrapedRegistration[] | null> {
 
   return [...byActivity.entries()].map(([rawName, agg]) => {
     // Names look like "Gliders 2 -- 112636"; split off the course number.
-    const [name, courseNo] = rawName.split(/\s*--\s*/);
+    // Some entries (memberships) embed HTML like "<br>Expires ..." — strip it.
+    const cleaned = rawName.split(/<br\s*\/?>/i)[0]!.replace(/<[^>]*>/g, "").trim();
+    const [name, courseNo] = cleaned.split(/\s*--\s*/);
+    const ended = agg.last < fmt(today);
     return {
-      name: (name ?? rawName).trim(),
+      name: (name ?? cleaned).trim(),
       level: courseNo ? `#${courseNo.trim()}` : null,
       dates: agg.first === agg.last ? agg.first : `${agg.first} – ${agg.last}`,
       times: [...agg.times].join(", ") || null,
       location: [...agg.locations].join("; ") || null,
-      status: agg.waitlisted ? "Waitlisted" : "Registered",
+      // A past activity is over either way; only flag Waitlisted while current.
+      status: ended ? "Completed" : agg.waitlisted ? "Waitlisted" : "Registered",
     };
   });
 }

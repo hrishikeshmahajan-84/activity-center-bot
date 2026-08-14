@@ -114,7 +114,7 @@ export function Dashboard() {
 
   const upNext = futureActivities([
     ...(registrationsRes?.registrations?.map(r => `${r.name} ${r.level ?? ""}`) ?? []),
-    ...(targets?.map(t => `${t.activityName} ${t.level ?? ""}`) ?? []),
+    ...activeTargets.map(t => `${t.activityName} ${t.level ?? ""}`),
   ]);
 
   return (
@@ -152,7 +152,11 @@ export function Dashboard() {
             <div className="text-sm text-emerald-700 font-medium py-4 text-center">Loading… 🔄</div>
           ) : registrationsRes?.registrations && registrationsRes.registrations.length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-              {registrationsRes.registrations.map((reg, idx) => (
+              {[...registrationsRes.registrations]
+                .sort((a, b) =>
+                  (a.status === "Completed" ? 1 : 0) - (b.status === "Completed" ? 1 : 0)
+                )
+                .map((reg, idx) => (
                 <div
                   key={idx}
                   className="flex-shrink-0 bg-white rounded-2xl border border-emerald-200 shadow-sm p-4 w-52"
@@ -170,6 +174,10 @@ export function Dashboard() {
                   {reg.status === "Waitlisted" ? (
                     <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
                       ⏳ Waitlisted
+                    </div>
+                  ) : reg.status === "Completed" ? (
+                    <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                      🏁 Completed
                     </div>
                   ) : (
                     <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
