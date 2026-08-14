@@ -188,6 +188,18 @@ export async function notifyScraperError(
   );
 }
 
+/** Sent when a waitlisted activity flips to enrolled (off the waitlist!). */
+export async function notifyWaitlistPromotion(
+  activityName: string,
+  level: string | null
+): Promise<boolean> {
+  const label = level ? `${activityName} – ${level}` : activityName;
+  return sendSms(
+    `🎉 Off the waitlist! Agastya is now ENROLLED in ${label}. ` +
+      `Check the app for class details.`
+  );
+}
+
 /** Optional startup confirmation SMS (dev only). */
 export async function sendStartupPing(): Promise<void> {
   if (!smsConfigured()) return;

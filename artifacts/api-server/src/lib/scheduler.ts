@@ -12,21 +12,27 @@
  *    testing the full flow on demand.
  */
 
-import { eq } from "drizzle-orm";
-import { db, activityTargetsTable, bookingLogTable } from "@workspace/db";
-import { findAndBook } from "./scraper";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { db, activityTargetsTable, bookingLogTable, registrationStatusTable } from "@workspace/db";
+import { findAndBook, readCurrentRegistrations } from "./scraper";
 import {
   smsConfigured,
   notifyBookingSuccess,
   notifyWindowOpening,
   notifyWindowEnded,
   notifyScraperError,
+  notifyWaitlistPromotion,
 } from "./sms";
 import { logger } from "./logger";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const CHECK_INTERVAL_MS = 60_000; // 60 seconds between checks
+
+// How often the waitlist watcher scrapes current registrations. A full
+// Playwright scrape is heavy (shared browser lock), so this runs less often
+// than the booking check loop.
+const WAITLIST_CHECK_INTERVAL_MS = 5 * 60_000; // 5 minutes
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -361,6 +367,167 @@ export async function runCheckCycle(forceRun = false): Promise<TargetTickResult[
   }
 }
 
+// ─── Waitlist watcher ─────────────────────────────────────────────────────────
+
+export interface WaitlistWatchResult {
+  checked: number;
+  promotions: Array<{ activityName: string; level: string | null; smsSent: boolean }>;
+  error: string | null;
+}
+
+let isWatchingWaitlist = false;
+let lastWaitlistCheckAt: Date | null = null;
+let waitlistIntervalHandle: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * How long an alert claim is honoured before another process may retry it.
+ * Covers the crash window between "Twilio accepted the message" and "delivery
+ * state persisted": within the lease no other process re-sends.
+ */
+const ALERT_CLAIM_LEASE_MS = 30 * 60_000;
+
+/**
+ * Scrapes current registrations and compares each activity's status with the
+ * last persisted status. When a status flips Waitlisted → Registered, sends a
+ * promotion SMS. Delivery failures set `alertPending` so the alert is retried
+ * on later cycles; success clears it — so exactly one alert per transition.
+ */
+export async function runWaitlistWatchCycle(): Promise<WaitlistWatchResult | null> {
+  if (isWatchingWaitlist) {
+    logger.warn("Waitlist watch skipped – previous run still in progress");
+    return null;
+  }
+  isWatchingWaitlist = true;
+  lastWaitlistCheckAt = new Date();
+
+  try {
+    const result = await readCurrentRegistrations();
+    if (result.error) {
+      // Do NOT update persisted statuses on a failed/partial scrape — a bogus
+      // empty scrape must never overwrite a real "Waitlisted" baseline.
+      logger.warn({ err: result.error }, "Waitlist watch: scrape failed – statuses unchanged");
+      return { checked: 0, promotions: [], error: result.error };
+    }
+
+    const promotions: WaitlistWatchResult["promotions"] = [];
+
+    for (const reg of result.registrations) {
+      const status = reg.status ?? "Registered";
+      const activityKey = `${reg.name}|${reg.level ?? ""}`;
+
+      const [existing] = await db
+        .select()
+        .from(registrationStatusTable)
+        .where(eq(registrationStatusTable.activityKey, activityKey));
+
+      if (!existing) {
+        // First sighting — record baseline, never alert.
+        await db.insert(registrationStatusTable).values({
+          activityKey,
+          activityName: reg.name,
+          level: reg.level,
+          status,
+        });
+        continue;
+      }
+
+      const wantsAlert =
+        (existing.status === "Waitlisted" && status === "Registered") ||
+        // A previously detected promotion whose SMS was not delivered yet.
+        (existing.alertPending && status === "Registered");
+
+      if (wantsAlert) {
+        // Atomically claim the alert BEFORE sending. The conditional WHERE
+        // means exactly one process can flip the row from its observed state;
+        // a concurrent scheduler (or a retry inside an active lease) gets
+        // rowCount=0 and must not send.
+        const leaseCutoff = new Date(Date.now() - ALERT_CLAIM_LEASE_MS);
+        const claim = (await db
+          .update(registrationStatusTable)
+          .set({
+            status: "Registered",
+            alertPending: true,
+            alertClaimedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(registrationStatusTable.id, existing.id),
+              or(
+                // Fresh transition: row still says Waitlisted.
+                eq(registrationStatusTable.status, "Waitlisted"),
+                // Undelivered alert whose claim is absent or lease-expired.
+                and(
+                  eq(registrationStatusTable.alertPending, true),
+                  or(
+                    isNull(registrationStatusTable.alertClaimedAt),
+                    lt(registrationStatusTable.alertClaimedAt, leaseCutoff)
+                  )
+                )
+              )
+            )
+          )) as { rowCount?: number | null };
+
+        if (claim.rowCount !== 1) {
+          logger.info(
+            { activity: reg.name, level: reg.level },
+            "Waitlist promotion alert already claimed by another process/lease – skipping send"
+          );
+          continue;
+        }
+
+        const smsSent = await notifyWaitlistPromotion(reg.name, reg.level);
+        promotions.push({ activityName: reg.name, level: reg.level, smsSent });
+        logger.info(
+          { activity: reg.name, level: reg.level, smsSent },
+          "Waitlist promotion detected – Waitlisted → Registered"
+        );
+
+        try {
+          if (smsSent) {
+            // Delivery confirmed — clear pending state so it never re-fires.
+            await db
+              .update(registrationStatusTable)
+              .set({ alertPending: false, alertClaimedAt: null, lastAlertAt: new Date(), updatedAt: new Date() })
+              .where(eq(registrationStatusTable.id, existing.id));
+          } else {
+            // Known send failure — release the claim (keep alertPending) so
+            // the next cycle retries immediately rather than after the lease.
+            await db
+              .update(registrationStatusTable)
+              .set({ alertClaimedAt: null, updatedAt: new Date() })
+              .where(eq(registrationStatusTable.id, existing.id));
+          }
+        } catch (persistErr) {
+          // Twilio may have accepted the message but we failed to record it.
+          // The active claim lease prevents any process (including this one)
+          // from re-sending until the lease expires — bounded at-least-once.
+          logger.error(
+            { err: persistErr instanceof Error ? persistErr.message : String(persistErr) },
+            "Failed to persist alert delivery state – claim lease prevents immediate duplicate"
+          );
+        }
+        continue;
+      }
+
+      if (existing.status !== status) {
+        await db
+          .update(registrationStatusTable)
+          .set({ status, updatedAt: new Date() })
+          .where(eq(registrationStatusTable.id, existing.id));
+      }
+    }
+
+    return { checked: result.registrations.length, promotions, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err: message }, "Waitlist watch cycle failed");
+    return { checked: 0, promotions: [], error: message };
+  } finally {
+    isWatchingWaitlist = false;
+  }
+}
+
 // ─── Scheduler lifecycle ──────────────────────────────────────────────────────
 
 export function startScheduler(): void {
@@ -380,6 +547,13 @@ export function startScheduler(): void {
 
   // Prevent the interval from keeping the process alive if there's nothing else
   intervalHandle.unref?.();
+
+  // Waitlist watcher — separate, slower loop (full Playwright scrape).
+  runWaitlistWatchCycle().catch((err) => logger.error({ err }, "Initial waitlist watch failed"));
+  waitlistIntervalHandle = setInterval(() => {
+    runWaitlistWatchCycle().catch((err) => logger.error({ err }, "Waitlist watch failed"));
+  }, WAITLIST_CHECK_INTERVAL_MS);
+  waitlistIntervalHandle.unref?.();
 }
 
 export function stopScheduler(): void {
@@ -387,6 +561,10 @@ export function stopScheduler(): void {
     clearInterval(intervalHandle);
     intervalHandle = null;
     logger.info("Scheduler stopped");
+  }
+  if (waitlistIntervalHandle) {
+    clearInterval(waitlistIntervalHandle);
+    waitlistIntervalHandle = null;
   }
 }
 
@@ -397,11 +575,13 @@ export function getSchedulerStatus(): {
   isChecking: boolean;
   lastTickAt: Date | null;
   smsConfigured: boolean;
+  lastWaitlistCheckAt: Date | null;
 } {
   return {
     isRunning: intervalHandle !== null,
     isChecking,
     lastTickAt,
     smsConfigured: smsConfigured(),
+    lastWaitlistCheckAt,
   };
 }
