@@ -14,3 +14,9 @@ description: Durable architectural lessons for the Playwright session manager.
 **Dry-run logging:** Dry-run attempts are written to the booking log with a `[DRY RUN]` prefix in notes, the same as live attempts. This ensures the dashboard always shows a history of what the scheduler tried.
 
 **Why:** Active Network is a React SPA; raw HTML scraping fails. The lock pattern prevents race conditions during registration windows when the scheduler fires multiple targets in quick succession.
+
+**JSON API scraping (Aug 2026):** The schedule SPA's own REST API (`/rest/myaccount/familyschedules?start_date=&end_date=` + `/filters` for family members) is the reliable data source; call it via `page.evaluate(fetch)` inside the authenticated session — `page.request.get` returns success with zero rows (missing SPA headers). HTML selectors on this site are dead ends.
+
+**Member ID gotcha:** a stale BURNABY_MEMBER_ID secret silently filters all schedules to zero (or targets the wrong family member). The scraper validates the configured ID against the family list from `/filters` and fails loudly if it doesn't match.
+
+**Browser strategy:** Nix-installed chromium (system dep, ships with deployment, self-contained libs) is the working fallback; Playwright's downloaded binary lacks libglib in BOTH dev and the deployed container. Resolve nix chromium via `which chromium` at launch time.

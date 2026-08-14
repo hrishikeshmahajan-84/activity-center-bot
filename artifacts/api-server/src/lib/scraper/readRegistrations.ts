@@ -55,7 +55,7 @@ async function readViaApi(page: Page): Promise<ScrapedRegistration[] | null> {
     // Run the fetch inside the page so it is indistinguishable from the SPA's
     // own request (cookies, CSRF headers, referer all handled by the browser).
     const data = (await page.evaluate(async (u: string) => {
-      const r = await fetch(u, { credentials: "include" });
+      const r = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(15_000) });
       return r.json();
     }, url)) as {
       headers?: { response_code?: string };
@@ -73,30 +73,34 @@ async function readViaApi(page: Page): Promise<ScrapedRegistration[] | null> {
   // Validate the configured member ID against the family list from the site
   // itself – a stale BURNABY_MEMBER_ID otherwise silently filters out
   // everything (or targets the wrong family member).
-  let memberId = Number(MEMBER_ID);
+  // Fail-closed member validation: the configured ID must be a positive
+  // integer that exists in the family list from the site itself. A stale or
+  // wrong BURNABY_MEMBER_ID must produce a loud error, never another family
+  // member's (or the whole family's) data.
+  const memberId = Number.parseInt(MEMBER_ID, 10);
+  if (!Number.isInteger(memberId) || memberId <= 0) {
+    throw new Error(`BURNABY_MEMBER_ID is not a valid positive integer`);
+  }
   try {
     const filters = (await page.evaluate(async (u: string) => {
-      const r = await fetch(u, { credentials: "include" });
+      const r = await fetch(u, { credentials: "include", signal: AbortSignal.timeout(15_000) });
       return r.json();
     }, `${SITE_URL}/rest/myaccount/familyschedules/filters?locale=en-US`)) as {
       body?: { filters?: { schedule_customer?: Array<{ customer_id: number; first_name: string; is_login_user: boolean }> } };
     };
     const family = filters.body?.filters?.schedule_customer ?? [];
     if (family.length > 0 && !family.some((c) => c.customer_id === memberId)) {
-      // Configured ID isn't in this family – prefer a non-login-user child
-      // account; if ambiguous, log and keep no filter rather than wrong data.
-      const nonLogin = family.filter((c) => !c.is_login_user);
-      logger.warn(
-        { configured: memberId, family: family.map((c) => ({ id: c.customer_id, name: c.first_name })) },
-        "Configured BURNABY_MEMBER_ID not found in family list"
+      const familyIds = family.map((c) => c.customer_id).join(", ");
+      throw new Error(
+        `Configured BURNABY_MEMBER_ID (${memberId}) is not in this account's family member list (${familyIds}). Update the BURNABY_MEMBER_ID secret.`
       );
-      if (nonLogin.length === 1) memberId = nonLogin[0].customer_id;
     }
   } catch (fErr) {
+    if (fErr instanceof Error && fErr.message.includes("BURNABY_MEMBER_ID")) throw fErr;
     logger.warn({ err: fErr instanceof Error ? fErr.message : String(fErr) }, "Could not validate member ID against family list");
   }
 
-  const mine = entries.filter((e) => !memberId || e.customer_id === memberId);
+  const mine = entries.filter((e) => e.customer_id === memberId);
 
   // Aggregate individual class sessions into one registration per activity.
   const byActivity = new Map<
@@ -293,9 +297,10 @@ export async function readCurrentRegistrations(): Promise<ReadRegistrationsResul
       }
     }
 
-    if (registrations.length === 0) {
-      // Diagnostic dump: persist what the page actually contained so selector
-      // failures can be debugged from logs/files instead of guessing.
+    if (registrations.length === 0 && process.env.NODE_ENV !== "production") {
+      // Dev-only diagnostic dump: persist what the page actually contained so
+      // selector failures can be debugged. Disabled in production because the
+      // dump contains authenticated family schedule data.
       try {
         const fsMod = await import("fs");
         const html = await page.content();
