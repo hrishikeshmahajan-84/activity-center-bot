@@ -61,9 +61,23 @@ let intervalHandle: ReturnType<typeof setInterval> | null = null;
 let isChecking = false; // prevent concurrent tick overlaps
 let lastTickAt: Date | null = null;
 
-function getOrInitTargetState(id: number): TargetState {
+/**
+ * Get or create in-process state for a target.
+ *
+ * @param id          Target row id.
+ * @param dbReminder  Value of `reminderSentForWindow` from the DB row — used
+ *                    to restore state after a server restart so we never
+ *                    double-send a reminder within the same registration window.
+ *                    Only applied when the target is first seen by this process.
+ */
+function getOrInitTargetState(id: number, dbReminder: string | null = null): TargetState {
   if (!targetStates.has(id)) {
-    targetStates.set(id, { windowEndedNotified: false, bookedThisSession: false, reminderSentForWindow: null });
+    targetStates.set(id, {
+      windowEndedNotified: false,
+      bookedThisSession: false,
+      // Seed from DB so a restart mid-window doesn't re-send the reminder.
+      reminderSentForWindow: dbReminder,
+    });
   }
   return targetStates.get(id)!;
 }
@@ -123,7 +137,9 @@ async function tickTarget(
   forceRun: boolean
 ): Promise<TargetTickResult> {
   const van = getVancouverTime(now);
-  const state = getOrInitTargetState(target.id);
+  // Pass the persisted DB value so a fresh process doesn't re-send a reminder
+  // that was already delivered before a restart.
+  const state = getOrInitTargetState(target.id, target.reminderSentForWindow ?? null);
 
   const base: Omit<TargetTickResult, "action" | "outcome" | "message" | "smsSent"> = {
     targetId: target.id,
@@ -167,6 +183,12 @@ async function tickTarget(
         // tick retries — providing bounded retry within the pre-window period.
         if (smsSent) {
           state.reminderSentForWindow = windowKey;
+          // Persist to DB so a server restart in the pre-window zone doesn't
+          // re-send the reminder for the same registration window.
+          await db
+            .update(activityTargetsTable)
+            .set({ reminderSentForWindow: windowKey })
+            .where(eq(activityTargetsTable.id, target.id));
         }
         logger.info(
           { targetId: target.id, activityName: target.activityName, minutesToOpen, delivered: smsSent },

@@ -13,6 +13,13 @@ export const activityTargetsTable = pgTable("activity_targets", {
   status: text("status").notNull().default("active"), // active | booked | cancelled
   lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /**
+   * Window key for which a pre-window reminder SMS was successfully sent,
+   * formatted as "<registrationDate>:<windowStart>" (e.g. "2026-09-06:09:00").
+   * Persisted so a server restart during the 30-minute pre-window zone does
+   * not cause a duplicate reminder. Null means no reminder has been sent yet.
+   */
+  reminderSentForWindow: text("reminder_sent_for_window"),
 });
 
 export const insertActivityTargetSchema = createInsertSchema(activityTargetsTable).omit({
