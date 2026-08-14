@@ -1,20 +1,18 @@
 /**
- * Twilio SMS notification helper.
+ * Twilio notification helper — supports both SMS and WhatsApp sandbox.
  *
  * Required secrets:
  *   TWILIO_ACCOUNT_SID   – Twilio account SID
  *   TWILIO_AUTH_TOKEN    – Twilio auth token
  *   TWILIO_FROM_NUMBER   – Twilio "From" phone number (E.164, e.g. +12223334444)
+ *                          (ignored in WhatsApp mode; sandbox number used instead)
  *   NOTIFY_PHONE_NUMBER  – Recipient phone number (E.164, e.g. +16047859680)
  *
  * Optional:
- *   TWILIO_TRIAL_ACCOUNT – Set to "true" when using a Twilio trial account.
- *                          Trial accounts require the prefix
- *                          "Sent from your Twilio trial account - " on every
- *                          outbound message. If this env var is not set, the
- *                          helper will auto-detect trial mode when Twilio
- *                          returns error code 21608/572006 and retry once with
- *                          the prefix.
+ *   TWILIO_USE_WHATSAPP  – Set to "true" to send via the Twilio WhatsApp sandbox
+ *                          instead of SMS. The recipient must first opt in by
+ *                          sending "join <keyword>" to whatsapp:+14155238886.
+ *   TWILIO_TRIAL_ACCOUNT – Set to "true" when using a Twilio trial SMS account.
  *
  * All functions degrade gracefully when Twilio is not configured – they log a
  * warning instead of throwing, so missing credentials never crash the scheduler.
@@ -23,30 +21,33 @@
 import twilio from "twilio";
 import { logger } from "./logger";
 
-/** Required prefix for every outbound message on a Twilio trial account. */
+/** Required prefix for every outbound message on a Twilio trial SMS account. */
 const TRIAL_PREFIX = "Sent from your Twilio trial account - ";
 
 /** Twilio error codes that indicate a trial-account template restriction. */
 const TRIAL_ERROR_CODES = new Set([21608, 572006]);
 
+/** Twilio WhatsApp sandbox number (shared across all trial accounts). */
+const WHATSAPP_SANDBOX_FROM = "whatsapp:+14155238886";
+
 export function smsConfigured(): boolean {
   return Boolean(
     process.env.TWILIO_ACCOUNT_SID &&
       process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_FROM_NUMBER &&
       process.env.NOTIFY_PHONE_NUMBER
   );
 }
 
-/** Returns true when the env var explicitly signals a trial account. */
+/** Returns true when WhatsApp sandbox mode is enabled. */
+function isWhatsApp(): boolean {
+  return process.env.TWILIO_USE_WHATSAPP?.toLowerCase() === "true";
+}
+
+/** Returns true when the env var explicitly signals a trial SMS account. */
 function isTrialAccount(): boolean {
   return process.env.TWILIO_TRIAL_ACCOUNT?.toLowerCase() === "true";
 }
 
-/**
- * Prepend the trial prefix if it isn't already present.
- * Safe to call on messages that were already prefixed.
- */
 function applyTrialPrefix(body: string): string {
   return body.startsWith(TRIAL_PREFIX) ? body : TRIAL_PREFIX + body;
 }
@@ -59,27 +60,43 @@ function getClient(): ReturnType<typeof twilio> {
 }
 
 /**
- * Send a raw SMS to the configured recipient number.
+ * Send a notification to the configured recipient.
  *
- * When TWILIO_TRIAL_ACCOUNT=true (or auto-detected via error code), the
- * required trial prefix is prepended automatically.
+ * When TWILIO_USE_WHATSAPP=true the message is delivered via the Twilio
+ * WhatsApp sandbox — no trial prefix needed, no paid plan required.
+ * The recipient must have already opted in by sending "join <keyword>" to
+ * +14155238886 on WhatsApp.
+ *
+ * When TWILIO_USE_WHATSAPP is unset/false, regular SMS is used and the
+ * trial prefix is applied automatically when needed.
  *
  * Returns true on success, false on failure (error is logged, not thrown).
  */
 export async function sendSms(body: string): Promise<boolean> {
   if (!smsConfigured()) {
-    logger.warn({ body }, "SMS not sent – Twilio credentials not configured");
+    logger.warn({ body }, "Notification not sent – Twilio credentials not configured");
     return false;
   }
 
-  // Apply trial prefix upfront when the account is explicitly flagged.
-  if (isTrialAccount() && process.env.NODE_ENV === "production") {
-    logger.warn(
-      "TWILIO_TRIAL_ACCOUNT=true is set in production – outbound messages will " +
-        "include the trial prefix. If you have upgraded to a paid Twilio account, " +
-        "delete the TWILIO_TRIAL_ACCOUNT secret to remove the prefix."
-    );
+  if (isWhatsApp()) {
+    // ── WhatsApp sandbox path ────────────────────────────────────────────────
+    const to = `whatsapp:${process.env.NOTIFY_PHONE_NUMBER!}`;
+    try {
+      const client = getClient();
+      const msg = await client.messages.create({
+        from: WHATSAPP_SANDBOX_FROM,
+        to,
+        body,
+      });
+      logger.info({ sid: msg.sid, to }, "WhatsApp message sent");
+      return true;
+    } catch (err) {
+      logger.error({ err }, "Failed to send WhatsApp message");
+      return false;
+    }
   }
+
+  // ── Regular SMS path ───────────────────────────────────────────────────────
   const outboundBody = isTrialAccount() ? applyTrialPrefix(body) : body;
 
   try {
@@ -92,8 +109,6 @@ export async function sendSms(body: string): Promise<boolean> {
     logger.info({ sid: msg.sid, to: process.env.NOTIFY_PHONE_NUMBER }, "SMS sent");
     return true;
   } catch (err: unknown) {
-    // Auto-detect trial account: if Twilio rejects with a trial template error,
-    // retry once with the required prefix (and log a hint to set the env var).
     const code = (err as { code?: number })?.code;
     if (TRIAL_ERROR_CODES.has(code!) && !isTrialAccount()) {
       logger.warn(
@@ -118,7 +133,6 @@ export async function sendSms(body: string): Promise<boolean> {
         return false;
       }
     }
-
     logger.error({ err }, "Failed to send SMS");
     return false;
   }
