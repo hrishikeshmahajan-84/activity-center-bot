@@ -9,6 +9,9 @@ import type { SchedulerTargetStatus } from './schedulerTargetStatus';
 
 export interface SchedulerStatus {
   isRunning: boolean;
+  smsConfigured: boolean;
   targets: SchedulerTargetStatus[];
   checkedAt: Date;
+  /** @nullable */
+  lastTickAt?: Date | null;
 }

@@ -230,6 +230,7 @@ export const CheckAndBookResponse = zod.object({
  */
 export const GetSchedulerStatusResponse = zod.object({
   "isRunning": zod.boolean(),
+  "smsConfigured": zod.boolean(),
   "targets": zod.array(zod.object({
   "targetId": zod.number(),
   "activityName": zod.string(),
@@ -241,7 +242,8 @@ export const GetSchedulerStatusResponse = zod.object({
   "nextCheckAt": zod.coerce.date().nullish(),
   "lastCheckedAt": zod.coerce.date().nullish()
 })),
-  "checkedAt": zod.coerce.date()
+  "checkedAt": zod.coerce.date(),
+  "lastTickAt": zod.coerce.date().nullish()
 })
 
 
@@ -251,7 +253,36 @@ export const GetSchedulerStatusResponse = zod.object({
 export const TriggerSchedulerResponse = zod.object({
   "triggered": zod.boolean(),
   "message": zod.string(),
-  "targetsChecked": zod.number().optional()
+  "targetsChecked": zod.number().optional(),
+  "results": zod.array(zod.object({
+  "targetId": zod.number(),
+  "activityName": zod.string(),
+  "level": zod.string(),
+  "action": zod.enum(['booked', 'checked', 'error', 'window_ended', 'skipped']),
+  "outcome": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "smsSent": zod.boolean()
+})).optional()
+})
+
+
+/**
+ * Runs the full booking check regardless of registration date or time window. Use for testing the full flow on demand.
+ * @summary Force an immediate check-and-book for all active targets (ignores time window)
+ */
+export const TriggerSchedulerNowResponse = zod.object({
+  "triggered": zod.boolean(),
+  "message": zod.string(),
+  "targetsChecked": zod.number().optional(),
+  "results": zod.array(zod.object({
+  "targetId": zod.number(),
+  "activityName": zod.string(),
+  "level": zod.string(),
+  "action": zod.enum(['booked', 'checked', 'error', 'window_ended', 'skipped']),
+  "outcome": zod.string().nullish(),
+  "message": zod.string().nullish(),
+  "smsSent": zod.boolean()
+})).optional()
 })
 
 

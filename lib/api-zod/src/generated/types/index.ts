@@ -24,5 +24,7 @@ export * from './registeredActivity';
 export * from './schedulerStatus';
 export * from './schedulerTargetStatus';
 export * from './schedulerTargetStatusSchedulerState';
+export * from './schedulerTargetTriggerResult';
+export * from './schedulerTargetTriggerResultAction';
 export * from './schedulerTriggerResult';
 export * from './scraperStatus';

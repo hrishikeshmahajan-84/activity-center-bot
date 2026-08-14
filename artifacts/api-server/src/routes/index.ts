@@ -5,6 +5,7 @@ import bookingsRouter from "./bookings";
 import registrationsRouter from "./registrations";
 import schedulerRouter from "./scheduler";
 import scrapeRouter from "./scrape";
+// Note: trigger-now is registered inside schedulerRouter
 
 const router: IRouter = Router();
 

@@ -1036,3 +1036,75 @@ export const useTriggerScheduler = <TError = ErrorType<unknown>,
       return useMutation(getTriggerSchedulerMutationOptions(options));
     }
 
+export const getTriggerSchedulerNowUrl = () => {
+
+
+
+
+  return `/api/scheduler/trigger-now`
+}
+
+/**
+ * Runs the full booking check regardless of registration date or time window. Use for testing the full flow on demand.
+ * @summary Force an immediate check-and-book for all active targets (ignores time window)
+ */
+export const triggerSchedulerNow = async ( options?: Parameters<typeof customFetch>[1]): Promise<SchedulerTriggerResult> => {
+
+  return customFetch<SchedulerTriggerResult>(getTriggerSchedulerNowUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTriggerSchedulerNowMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerSchedulerNow>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof triggerSchedulerNow>>, TError,void, TContext> => {
+
+const mutationKey = ['triggerSchedulerNow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerSchedulerNow>>, void> = () => {
+
+
+          return  triggerSchedulerNow(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TriggerSchedulerNowMutationResult = NonNullable<Awaited<ReturnType<typeof triggerSchedulerNow>>>
+
+    export type TriggerSchedulerNowMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Force an immediate check-and-book for all active targets (ignores time window)
+ */
+export const useTriggerSchedulerNow = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerSchedulerNow>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof triggerSchedulerNow>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getTriggerSchedulerNowMutationOptions(options));
+    }
+

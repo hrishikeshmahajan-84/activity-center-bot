@@ -1,5 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startScheduler } from "./lib/scheduler";
+import { sendStartupPing } from "./lib/sms";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +24,12 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Start the booking scheduler (no-op outside registration windows)
+  startScheduler();
+
+  // Optional startup SMS in dev to confirm Twilio is wired correctly
+  sendStartupPing().catch((e) =>
+    logger.warn({ err: e }, "Startup SMS ping failed")
+  );
 });

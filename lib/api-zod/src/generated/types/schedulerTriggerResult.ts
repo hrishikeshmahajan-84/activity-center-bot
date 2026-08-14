@@ -5,9 +5,11 @@
  * Burnaby Activities registration automation API
  * OpenAPI spec version: 0.1.0
  */
+import type { SchedulerTargetTriggerResult } from './schedulerTargetTriggerResult';
 
 export interface SchedulerTriggerResult {
   triggered: boolean;
   message: string;
   targetsChecked?: number;
+  results?: SchedulerTargetTriggerResult[];
 }

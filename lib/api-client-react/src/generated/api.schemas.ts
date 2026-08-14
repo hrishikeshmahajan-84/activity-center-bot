@@ -179,8 +179,11 @@ export interface SchedulerTargetStatus {
 
 export interface SchedulerStatus {
   isRunning: boolean;
+  smsConfigured: boolean;
   targets: SchedulerTargetStatus[];
   checkedAt: string;
+  /** @nullable */
+  lastTickAt?: string | null;
 }
 
 export interface ScraperStatus {
@@ -223,10 +226,34 @@ export interface BookingAttemptResult {
   logEntryId?: number | null;
 }
 
+export type SchedulerTargetTriggerResultAction = typeof SchedulerTargetTriggerResultAction[keyof typeof SchedulerTargetTriggerResultAction];
+
+
+export const SchedulerTargetTriggerResultAction = {
+  booked: 'booked',
+  checked: 'checked',
+  error: 'error',
+  window_ended: 'window_ended',
+  skipped: 'skipped',
+} as const;
+
+export interface SchedulerTargetTriggerResult {
+  targetId: number;
+  activityName: string;
+  level: string;
+  action: SchedulerTargetTriggerResultAction;
+  /** @nullable */
+  outcome?: string | null;
+  /** @nullable */
+  message?: string | null;
+  smsSent: boolean;
+}
+
 export interface SchedulerTriggerResult {
   triggered: boolean;
   message: string;
   targetsChecked?: number;
+  results?: SchedulerTargetTriggerResult[];
 }
 
 export type ListBookingsParams = {
