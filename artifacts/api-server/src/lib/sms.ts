@@ -60,6 +60,7 @@ export async function sendSms(body: string): Promise<boolean> {
 interface TargetInfo {
   activityName: string;
   level: string;
+  checkWindowStart?: string | null;
   checkWindowEnd?: string | null;
 }
 
@@ -79,6 +80,23 @@ export async function notifyBookingSuccess(
   if (result.classTime) parts.push(result.classTime);
   if (result.confirmationNumber) parts.push(`Confirmation #${result.confirmationNumber}`);
   return sendSms(parts.join(" – "));
+}
+
+/** Sent 30 minutes before the check window opens, as a manual-backup heads-up. */
+export async function notifyWindowOpening(target: TargetInfo): Promise<boolean> {
+  const windowStart = target.checkWindowStart ?? "09:00";
+  // Format "HH:MM" → "9:00am" / "2:30pm" style
+  const [hStr, mStr] = windowStart.split(":");
+  const h = parseInt(hStr ?? "9", 10);
+  const m = parseInt(mStr ?? "0", 10);
+  const period = h < 12 ? "am" : "pm";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const mPad = m === 0 ? "00" : String(m).padStart(2, "0");
+  const timeLabel = `${h12}:${mPad}${period}`;
+  return sendSms(
+    `⏰ Reminder: Registration window for ${target.activityName} – ${target.level} ` +
+      `opens in 30 minutes (${timeLabel} PT). Get ready!`
+  );
 }
 
 /** Sent once when the check window closes without a successful booking. */

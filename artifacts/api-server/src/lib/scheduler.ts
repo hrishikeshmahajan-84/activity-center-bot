@@ -18,6 +18,7 @@ import { findAndBook } from "./scraper";
 import {
   smsConfigured,
   notifyBookingSuccess,
+  notifyWindowOpening,
   notifyWindowEnded,
   notifyScraperError,
 } from "./sms";
@@ -45,6 +46,14 @@ export interface TargetTickResult {
 interface TargetState {
   windowEndedNotified: boolean;
   bookedThisSession: boolean;
+  /**
+   * Window key for which a pre-window reminder was successfully delivered,
+   * formatted as "<registrationDate>:<windowStart>" (e.g. "2026-08-14:09:00").
+   * Null means no reminder has been sent yet for the current in-process session.
+   * Scoped to the window so that if a target's registration date is updated the
+   * reminder fires again for the new date.
+   */
+  reminderSentForWindow: string | null;
 }
 
 const targetStates = new Map<number, TargetState>();
@@ -54,9 +63,14 @@ let lastTickAt: Date | null = null;
 
 function getOrInitTargetState(id: number): TargetState {
   if (!targetStates.has(id)) {
-    targetStates.set(id, { windowEndedNotified: false, bookedThisSession: false });
+    targetStates.set(id, { windowEndedNotified: false, bookedThisSession: false, reminderSentForWindow: null });
   }
   return targetStates.get(id)!;
+}
+
+/** Wipes all in-process target state. Only call this from tests. */
+export function _resetSchedulerStateForTest(): void {
+  targetStates.clear();
 }
 
 // ─── Timezone helpers ─────────────────────────────────────────────────────────
@@ -136,6 +150,32 @@ async function tickTarget(
 
     // Before window opens
     if (currentMin < startMin) {
+      // Send a 30-minute heads-up reminder once per registration window.
+      // The window key includes both the registration date and the window start
+      // time so that if the target is rescheduled the reminder fires again.
+      const minutesToOpen = startMin - currentMin;
+      const windowKey = `${target.registrationDate}:${windowStart}`;
+      if (minutesToOpen <= 30 && state.reminderSentForWindow !== windowKey) {
+        const smsSent = await notifyWindowOpening(target);
+        // Only record the reminder as sent when delivery was confirmed.
+        // A failed send (smsSent=false) leaves the flag unset so the next
+        // tick retries — providing bounded retry within the pre-window period.
+        if (smsSent) {
+          state.reminderSentForWindow = windowKey;
+        }
+        logger.info(
+          { targetId: target.id, activityName: target.activityName, minutesToOpen, delivered: smsSent },
+          "Pre-window reminder attempted"
+        );
+        return {
+          ...base,
+          action: "skipped",
+          message: smsSent
+            ? `Reminder sent – window opens in ${minutesToOpen} min`
+            : `Reminder delivery failed – will retry next tick`,
+          smsSent,
+        };
+      }
       return { ...base, action: "skipped", message: "Before check window", smsSent: false };
     }
 
