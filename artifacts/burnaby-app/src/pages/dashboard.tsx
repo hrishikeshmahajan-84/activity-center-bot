@@ -112,6 +112,11 @@ export function Dashboard() {
     (!t.registrationDate || t.registrationDate >= today)
   ) || [];
 
+  // Hide completed activities from the cards; they still feed the "Up Next"
+  // progression (a completed Gliders 2 is what unlocks Gliders 3).
+  const currentRegistrations =
+    registrationsRes?.registrations?.filter(r => r.status !== "Completed") ?? [];
+
   const upNext = futureActivities([
     ...(registrationsRes?.registrations?.map(r => `${r.name} ${r.level ?? ""}`) ?? []),
     ...activeTargets.map(t => `${t.activityName} ${t.level ?? ""}`),
@@ -150,13 +155,9 @@ export function Dashboard() {
         <div className="px-5 pb-5">
           {regLoading ? (
             <div className="text-sm text-emerald-700 font-medium py-4 text-center">Loading… 🔄</div>
-          ) : registrationsRes?.registrations && registrationsRes.registrations.length > 0 ? (
+          ) : currentRegistrations.length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-              {[...registrationsRes.registrations]
-                .sort((a, b) =>
-                  (a.status === "Completed" ? 1 : 0) - (b.status === "Completed" ? 1 : 0)
-                )
-                .map((reg, idx) => (
+              {currentRegistrations.map((reg, idx) => (
                 <div
                   key={idx}
                   className="flex-shrink-0 bg-white rounded-2xl border border-emerald-200 shadow-sm p-4 w-52"
