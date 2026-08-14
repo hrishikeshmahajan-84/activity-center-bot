@@ -1,14 +1,17 @@
 ---
 name: Playwright Chromium on Replit
-description: How to get Playwright's Chromium running in the Replit NixOS environment.
+description: How to get Playwright's Chromium running in the Replit NixOS dev environment and in deployed containers.
 ---
 
-**Rule:** The dev Replit container (NixOS) cannot run the Playwright-managed headless shell binary OR the Nix-packaged Chromium (v92). Both fail with either glibc library conflicts or SIGSEGV. The deployed container uses a standard Linux environment where `playwright install chromium` works correctly.
+**Rule:** Always ensure `PLAYWRIGHT_BROWSERS_PATH` is set to the same value for both `playwright install` and `chromium.launch()`. The correct place to enforce this is at server startup in `artifacts/api-server/src/index.ts` via `ensurePlaywrightBrowser()`.
 
-**Why:** NixOS stores all system libraries in `/nix/store` at content-addressed paths, not at standard `/lib/x86_64-linux-gnu/`. The Playwright binary (compiled for glibc Linux) cannot find libraries like `libglib-2.0.so.0`. Attempts to fix via `LD_LIBRARY_PATH` cause a second problem: Nix-compiled secondary libraries link to Nix's own glibc, creating a conflict with the binary's original interpreter (GLIBC_PRIVATE version mismatch). `patchelf` also segfaults in this kernel environment. The Nix Chromium (v92) segfaults unconditionally due to kernel seccomp policy blocking required syscalls.
+**Why:** There are two failure modes:
+1. *Dev (NixOS)*: Chromium binaries (whether Playwright-managed or Nix-packaged) cannot execute due to kernel seccomp restrictions and glibc library conflicts. This is a permanent environment limitation; the scraper gracefully returns an error.
+2. *Deployed container*: `playwright install` must run at process startup to download the binary (~100 MB) into `/home/runner/.playwright-browsers/`. The artifact's production run command is `node --enable-source-maps artifacts/api-server/dist/index.mjs` — it bypasses `package.json` scripts entirely, so `playwright install` must be called from inside `index.ts` (using `execFileSync('./node_modules/.bin/playwright', ['install', 'chromium'])`).
 
 **How to apply:**
-- In dev: the scraper will always fail with a browser error. This is expected; the API returns `{ source: "live", error: "...", registrations: [] }` and the UI shows "Couldn't load right now". Do not try to fix it in dev — it is an environment limitation.
-- In deployment: `playwright install chromium` runs automatically as part of the `start` script before the server boots. The deployed Linux container has standard glibc paths and the browser launches successfully.
-- `PLAYWRIGHT_BROWSERS_PATH` must be set (defaults to `/home/runner/.playwright-browsers`) so the binary persists across restarts in the deployed container.
-- Never use `--with-deps` on Replit dev (blocks apt/sudo), but it's fine in the start script because it degrades gracefully (`|| playwright install chromium || true`).
+- `artifacts/api-server/src/index.ts` contains `ensurePlaywrightBrowser()` which runs synchronously before `app.listen()`. Do not remove it.
+- `PLAYWRIGHT_BROWSERS_PATH` is set to `/home/runner/.playwright-browsers` in `index.ts` before any scraper module loads. `session.ts` respects this and skips its own default assignment.
+- The `package.json` `start` script also exports `PLAYWRIGHT_BROWSERS_PATH` before running `playwright install`, but this is only exercised in dev mode (deployed containers skip it).
+- On first production startup, browser download adds ~30–60 s before `app.listen()` is called. Subsequent restarts are instant (idempotent check).
+- The binary candidate list in `ensurePlaywrightBrowser()`: `['./node_modules/.bin/playwright', 'playwright']` — try local pnpm binary first, fall back to PATH.
