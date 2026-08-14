@@ -15,6 +15,7 @@
 
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { logger } from "../logger";
 
@@ -89,6 +90,16 @@ function findManagedChromium(): string | null {
   return null;
 }
 
+/** Resolve the Nix-installed chromium from PATH (self-contained, works in dev and deploy). */
+function findNixChromium(): string | null {
+  try {
+    const p = execSync("which chromium || which chromium-browser", { encoding: "utf8" }).trim();
+    return p || null;
+  } catch {
+    return null;
+  }
+}
+
 async function launchBrowser(): Promise<Browser> {
   if (browser?.isConnected()) return browser;
 
@@ -107,6 +118,7 @@ async function launchBrowser(): Promise<Browser> {
   } catch (managedErr) {
     const nixPath =
       process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
+      findNixChromium() ??
       "/home/runner/.nix-profile/bin/chromium";
     logger.warn(
       { err: managedErr instanceof Error ? managedErr.message : String(managedErr), fallback: nixPath },
