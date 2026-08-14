@@ -4,3 +4,4 @@
 - [Booking endpoint auth model](booking-auth-model.md) — only check-and-book requires API key (server-to-server); browser CRUD endpoints rely on CORS restriction.
 - [Waitlist alert dedup](waitlist-alert-dedup.md) — one-shot transition alerts need a DB claim (conditional UPDATE + lease) BEFORE sending, not a flag persisted after.
 - [Notification channel](notifications-channel.md) — Telegram bot is the primary channel; Twilio trial blocks all custom SMS/templates, so SMS is fallback only.
+- [Prod data fixes](prod-data-fixes.md) — prod DB is read-only from workspace; fix bad prod data via idempotent startup reconciliation + republish, then remove it.

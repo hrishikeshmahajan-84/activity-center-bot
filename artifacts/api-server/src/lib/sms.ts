@@ -55,15 +55,16 @@ const TRIAL_PREFIX = "Sent from your Twilio trial account - ";
 const TRIAL_ERROR_CODES = new Set([21608, 572006]);
 
 
-export function smsConfigured(): boolean {
-  return (
-    telegramConfigured() ||
-    Boolean(
-      process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.NOTIFY_PHONE_NUMBER
-    )
+function twilioConfigured(): boolean {
+  return Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.NOTIFY_PHONE_NUMBER
   );
+}
+
+export function smsConfigured(): boolean {
+  return telegramConfigured() || twilioConfigured();
 }
 
 /** Returns true when the env var explicitly signals a trial SMS account. */
@@ -98,7 +99,12 @@ export async function sendSms(body: string): Promise<boolean> {
 
   // ── Telegram path (preferred) ──────────────────────────────────────────────
   if (telegramConfigured()) {
-    return sendTelegram(body);
+    const telegramOk = await sendTelegram(body);
+    if (telegramOk) return true;
+    if (!twilioConfigured()) return false;
+    logger.warn("Telegram delivery failed – falling back to Twilio SMS");
+  } else if (!twilioConfigured()) {
+    return false;
   }
 
   // ── Twilio SMS fallback ────────────────────────────────────────────────────

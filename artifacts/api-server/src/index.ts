@@ -43,12 +43,13 @@ const browserReady = ensurePlaywrightBrowser();
 // ── Server (dynamically imported so playwright sees the env var above) ───────
 
 async function main() {
-  const [{ default: app }, { logger }, { startScheduler }, { sendStartupPing }] =
+  const [{ default: app }, { logger }, { startScheduler }, { sendStartupPing }, { runStartupDataCleanup }] =
     await Promise.all([
       import("./app"),
       import("./lib/logger"),
       import("./lib/scheduler"),
       import("./lib/sms"),
+      import("./lib/dataCleanup"),
     ]);
 
   if (browserReady) {
@@ -81,8 +82,11 @@ async function main() {
 
     logger.info({ port }, "Server listening");
 
-    // Start the booking scheduler (no-op outside registration windows)
-    startScheduler();
+    // One-time data reconciliation (junk test targets, stale reg dates),
+    // then start the booking scheduler (no-op outside registration windows)
+    runStartupDataCleanup()
+      .catch((e) => logger.error({ err: e }, "Startup data cleanup failed"))
+      .finally(() => startScheduler());
 
     // Optional startup SMS in dev to confirm Twilio is wired correctly
     sendStartupPing().catch((e) =>
