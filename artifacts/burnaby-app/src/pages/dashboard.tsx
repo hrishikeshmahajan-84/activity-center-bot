@@ -1,4 +1,4 @@
-import { useListTargets, useGetCurrentRegistrations, useGetSchedulerStatus, useGetUpcomingClasses, getGetUpcomingClassesQueryKey, useTriggerScrape, useTriggerScheduler, getGetCurrentRegistrationsQueryKey, getGetSchedulerStatusQueryKey } from "@workspace/api-client-react";
+import { useListTargets, useCreateTarget, getListTargetsQueryKey, useGetCurrentRegistrations, useGetSchedulerStatus, useGetUpcomingClasses, getGetUpcomingClassesQueryKey, useTriggerScrape, useTriggerScheduler, getGetCurrentRegistrationsQueryKey, getGetSchedulerStatusQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Play } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -138,6 +138,32 @@ export function Dashboard() {
   const nextLevels = new Set(upNext.map(f => f.next));
   const currentOf = new Map(upNext.map(f => [f.next, f.current]));
   const upcomingClasses = upcomingRes?.classes ?? [];
+
+  // Create a robot booking target straight from an Up Next class
+  const createTarget = useCreateTarget();
+  const targetedLevels = new Set((targets ?? []).filter(t => t.status === "active").map(t => t.level.toLowerCase()));
+  const programOf = (keyword: string) =>
+    /^(preschool|swimmer)/i.test(keyword) ? "Swimming" : /^glider/i.test(keyword) ? "Ice Skating" : keyword;
+  const handleAutoBook = (c: (typeof upcomingClasses)[number]) => {
+    createTarget.mutate(
+      {
+        data: {
+          activityName: programOf(c.keyword),
+          level: c.keyword,
+          registrationDate: c.registrationDate ?? today,
+          notes: [c.name, c.courseNumber ? `#${c.courseNumber}` : null, c.daysOfWeek, c.times, c.site]
+            .filter(Boolean)
+            .join(" · "),
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListTargetsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetSchedulerStatusQueryKey() });
+        },
+      }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -411,6 +437,21 @@ export function Dashboard() {
                               <div>🕐 {[c.daysOfWeek, c.times].filter(Boolean).join(" · ")}</div>
                             )}
                             {c.site && <div>📍 {c.site}</div>}
+                          </div>
+                          <div className="mt-2">
+                            {targetedLevels.has(c.keyword.toLowerCase()) ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                                🤖 Robot is on it
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleAutoBook(c)}
+                                disabled={createTarget.isPending}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
+                              >
+                                🤖 Auto-book this
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
