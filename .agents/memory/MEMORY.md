@@ -3,3 +3,4 @@
 - [OpenAPI integer types](openapi-integer-types.md) — use `type: number` not `type: integer` (orval v8 + zod v3 collision).
 - [Booking endpoint auth model](booking-auth-model.md) — only check-and-book requires API key (server-to-server); browser CRUD endpoints rely on CORS restriction.
 - [Waitlist alert dedup](waitlist-alert-dedup.md) — one-shot transition alerts need a DB claim (conditional UPDATE + lease) BEFORE sending, not a flag persisted after.
+- [Notification channel](notifications-channel.md) — Telegram bot is the primary channel; Twilio trial blocks all custom SMS/templates, so SMS is fallback only.
