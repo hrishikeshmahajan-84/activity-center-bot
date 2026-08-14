@@ -136,6 +136,11 @@ async function tickTarget(
     return { ...base, action: "skipped", message: "Already booked this session", smsSent: false };
   }
 
+  // Skip targets whose registration date has already passed
+  if (!forceRun && target.registrationDate && van.dateStr > target.registrationDate) {
+    return { ...base, action: "skipped", message: "Registration date has passed", smsSent: false };
+  }
+
   const windowStart = target.checkWindowStart ?? "09:00";
   const windowEnd = target.checkWindowEnd ?? "11:00";
   const startMin = parseTime(windowStart);

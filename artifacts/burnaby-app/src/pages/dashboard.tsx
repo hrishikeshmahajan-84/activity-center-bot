@@ -69,7 +69,12 @@ export function Dashboard() {
     });
   };
 
-  const activeTargets = targets?.filter(t => t.status === "active") || [];
+  const today = new Date().toISOString().slice(0, 10);
+  const activeTargets = targets?.filter(t =>
+    t.status === "active" &&
+    // Exclude activities whose registration date has already passed
+    (!t.registrationDate || t.registrationDate >= today)
+  ) || [];
 
   return (
     <div className="space-y-6">
