@@ -141,9 +141,14 @@ export function Dashboard() {
 
   // Create a robot booking target straight from an Up Next class
   const createTarget = useCreateTarget();
-  const targetedLevels = new Set((targets ?? []).filter(t => t.status === "active").map(t => t.level.toLowerCase()));
+  const activeTargetList = (targets ?? []).filter(t => t.status === "active");
+  const targetedLevels = new Set(activeTargetList.map(t => t.level.toLowerCase()));
+  const targetedPrograms = new Set(activeTargetList.map(t => t.activityName.toLowerCase()));
   const programOf = (keyword: string) =>
     /^(preschool|swimmer)/i.test(keyword) ? "Swimming" : /^glider/i.test(keyword) ? "Ice Skating" : keyword;
+  const isTargeted = (keyword: string) =>
+    targetedLevels.has(keyword.toLowerCase()) ||
+    targetedPrograms.has(programOf(keyword).toLowerCase());
   const handleAutoBook = (c: (typeof upcomingClasses)[number]) => {
     createTarget.mutate(
       {
@@ -439,7 +444,7 @@ export function Dashboard() {
                             {c.site && <div>📍 {c.site}</div>}
                           </div>
                           <div className="mt-2">
-                            {targetedLevels.has(c.keyword.toLowerCase()) ? (
+                            {isTargeted(c.keyword) ? (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
                                 🤖 Robot is on it
                               </span>
