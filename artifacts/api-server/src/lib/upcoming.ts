@@ -71,6 +71,8 @@ async function searchKeyword(keyword: string): Promise<UpcomingClass[]> {
     // ("Preschool 4: Sea Lion" for keyword "Preschool 4"), still running or upcoming.
     .filter((i) => (i.name ?? "").toLowerCase().startsWith(kw))
     .filter((i) => (i.date_range_end ?? "") >= today)
+    // Skip full classes — no point suggesting something he can't get into
+    .filter((i) => (i.urgent_message?.status_description ?? "") !== "Full")
     .sort((a, b) => (a.date_range_start ?? "").localeCompare(b.date_range_start ?? ""))
     .slice(0, MAX_PER_KEYWORD)
     .map((i): UpcomingClass => ({
