@@ -46,4 +46,3 @@ channel = "stable-25_05"
 
 [userenv.shared]
 TWILIO_TRIAL_ACCOUNT = "true"
-TWILIO_USE_WHATSAPP = "true"

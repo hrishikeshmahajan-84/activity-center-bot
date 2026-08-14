@@ -1,25 +1,52 @@
 /**
- * Twilio notification helper — supports both SMS and WhatsApp sandbox.
+ * Notification helper — prefers Telegram when configured, falls back to Twilio SMS.
  *
- * Required secrets:
+ * Telegram (preferred — free, no trial restrictions):
+ *   TELEGRAM_BOT_TOKEN  – Bot token from @BotFather
+ *   TELEGRAM_CHAT_ID    – Your personal chat ID (send the bot any message,
+ *                         then GET /getUpdates to find it)
+ *
+ * Twilio SMS (fallback):
  *   TWILIO_ACCOUNT_SID   – Twilio account SID
  *   TWILIO_AUTH_TOKEN    – Twilio auth token
- *   TWILIO_FROM_NUMBER   – Twilio "From" phone number (E.164, e.g. +12223334444)
- *                          (ignored in WhatsApp mode; sandbox number used instead)
- *   NOTIFY_PHONE_NUMBER  – Recipient phone number (E.164, e.g. +16047859680)
+ *   TWILIO_FROM_NUMBER   – Twilio "From" phone number (E.164)
+ *   NOTIFY_PHONE_NUMBER  – Recipient phone number (E.164)
+ *   TWILIO_TRIAL_ACCOUNT – Set to "true" on a trial account (prefix applied automatically)
  *
- * Optional:
- *   TWILIO_USE_WHATSAPP  – Set to "true" to send via the Twilio WhatsApp sandbox
- *                          instead of SMS. The recipient must first opt in by
- *                          sending "join <keyword>" to whatsapp:+14155238886.
- *   TWILIO_TRIAL_ACCOUNT – Set to "true" when using a Twilio trial SMS account.
- *
- * All functions degrade gracefully when Twilio is not configured – they log a
- * warning instead of throwing, so missing credentials never crash the scheduler.
+ * All functions degrade gracefully when nothing is configured.
  */
 
 import twilio from "twilio";
 import { logger } from "./logger";
+
+// ─── Telegram ─────────────────────────────────────────────────────────────────
+
+function telegramConfigured(): boolean {
+  return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
+}
+
+async function sendTelegram(text: string): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN!;
+  const chatId = process.env.TELEGRAM_CHAT_ID!;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = (await res.json()) as { ok: boolean; description?: string };
+    if (!data.ok) {
+      logger.error({ description: data.description }, "Telegram sendMessage failed");
+      return false;
+    }
+    logger.info({ chatId }, "Telegram message sent");
+    return true;
+  } catch (err) {
+    logger.error({ err }, "Failed to send Telegram message");
+    return false;
+  }
+}
 
 /** Required prefix for every outbound message on a Twilio trial SMS account. */
 const TRIAL_PREFIX = "Sent from your Twilio trial account - ";
@@ -27,20 +54,16 @@ const TRIAL_PREFIX = "Sent from your Twilio trial account - ";
 /** Twilio error codes that indicate a trial-account template restriction. */
 const TRIAL_ERROR_CODES = new Set([21608, 572006]);
 
-/** Twilio WhatsApp sandbox number (shared across all trial accounts). */
-const WHATSAPP_SANDBOX_FROM = "whatsapp:+14155238886";
 
 export function smsConfigured(): boolean {
-  return Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN &&
-      process.env.NOTIFY_PHONE_NUMBER
+  return (
+    telegramConfigured() ||
+    Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+        process.env.TWILIO_AUTH_TOKEN &&
+        process.env.NOTIFY_PHONE_NUMBER
+    )
   );
-}
-
-/** Returns true when WhatsApp sandbox mode is enabled. */
-function isWhatsApp(): boolean {
-  return process.env.TWILIO_USE_WHATSAPP?.toLowerCase() === "true";
 }
 
 /** Returns true when the env var explicitly signals a trial SMS account. */
@@ -62,41 +85,23 @@ function getClient(): ReturnType<typeof twilio> {
 /**
  * Send a notification to the configured recipient.
  *
- * When TWILIO_USE_WHATSAPP=true the message is delivered via the Twilio
- * WhatsApp sandbox — no trial prefix needed, no paid plan required.
- * The recipient must have already opted in by sending "join <keyword>" to
- * +14155238886 on WhatsApp.
- *
- * When TWILIO_USE_WHATSAPP is unset/false, regular SMS is used and the
- * trial prefix is applied automatically when needed.
+ * Prefers Telegram when TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID are set.
+ * Falls back to Twilio SMS (with automatic trial-prefix handling).
  *
  * Returns true on success, false on failure (error is logged, not thrown).
  */
 export async function sendSms(body: string): Promise<boolean> {
   if (!smsConfigured()) {
-    logger.warn({ body }, "Notification not sent – Twilio credentials not configured");
+    logger.warn({ body }, "Notification not sent – no notification channel configured");
     return false;
   }
 
-  if (isWhatsApp()) {
-    // ── WhatsApp sandbox path ────────────────────────────────────────────────
-    const to = `whatsapp:${process.env.NOTIFY_PHONE_NUMBER!}`;
-    try {
-      const client = getClient();
-      const msg = await client.messages.create({
-        from: WHATSAPP_SANDBOX_FROM,
-        to,
-        body,
-      });
-      logger.info({ sid: msg.sid, to }, "WhatsApp message sent");
-      return true;
-    } catch (err) {
-      logger.error({ err }, "Failed to send WhatsApp message");
-      return false;
-    }
+  // ── Telegram path (preferred) ──────────────────────────────────────────────
+  if (telegramConfigured()) {
+    return sendTelegram(body);
   }
 
-  // ── Regular SMS path ───────────────────────────────────────────────────────
+  // ── Twilio SMS fallback ────────────────────────────────────────────────────
   const outboundBody = isTrialAccount() ? applyTrialPrefix(body) : body;
 
   try {
