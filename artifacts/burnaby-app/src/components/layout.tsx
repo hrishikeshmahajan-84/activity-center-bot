@@ -22,7 +22,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               🏅
             </div>
             <div>
-              <h1 className="font-extrabold text-lg leading-tight text-foreground">Activity HQ</h1>
+              <h1 className="font-extrabold text-lg leading-tight text-foreground">Activity Center</h1>
               <p className="text-[11px] text-muted-foreground font-medium">Burnaby Fun Finder</p>
             </div>
           </div>
