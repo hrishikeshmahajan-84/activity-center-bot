@@ -1,0 +1,28 @@
+kind = "slides"
+previewPath = "/activity-center-deck/"
+title = "Activity Center Bot — Presentation"
+description = "A 9-slide Corporate Grid deck about the Burnaby rec-class auto-booking bot: what it does, the problem it solves, how it works, and lessons learned while building it."
+version = "1.0.0"
+id = "artifacts/activity-center-deck"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/activity-center-deck/" ]
+localPort = 26142
+
+[services.development]
+run = "pnpm --filter @workspace/activity-center-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/activity-center-deck", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/activity-center-deck/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26142"
+BASE_PATH = "/activity-center-deck/"

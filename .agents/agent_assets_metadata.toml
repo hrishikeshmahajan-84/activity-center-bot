@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "fpuDzN9gEW7GzZTLMsugP"
+uri = "file://.local/outputs/Activity-Center-Bot.pptx"
+type = "slides"
+title = "Activity Center Bot (PPTX)"
+description = "9-slide Corporate Grid deck covering the problem, solution, how it works, tech stack, dashboard, challenges, and lessons learned."

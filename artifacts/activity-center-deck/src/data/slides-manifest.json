@@ -1,0 +1,74 @@
+[
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01Title.tsx",
+    "title": "Activity Center Bot",
+    "description": "Title slide — the bot's purpose in one line",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02Problem.tsx",
+    "title": "The Problem",
+    "description": "Burnaby rec classes fill in seconds — manual registration is a race no parent can always win",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03Solution.tsx",
+    "title": "The Solution",
+    "description": "A personal booking robot that handles registration automatically",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04HowItWorks.tsx",
+    "title": "How It Works",
+    "description": "Four-step flow: scheduler, Playwright login, booking, Telegram notification",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05TechStack.tsx",
+    "title": "The Stack",
+    "description": "pnpm monorepo — backend (Express, Drizzle, Playwright) and frontend (React, OpenAPI codegen)",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06Dashboard.tsx",
+    "title": "Activity Center Dashboard",
+    "description": "Web app showing upcoming classes, robot targets, and booking history",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07Challenges.tsx",
+    "title": "Challenges Solved",
+    "description": "Browser auth, notification channel pivots, and production data isolation",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08Lessons.tsx",
+    "title": "What I Learned",
+    "description": "Four durable lessons from building a time-critical personal automation project",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b1a2c3d4-e5f6-4a78-9b01-c2d3e4f50009",
+    "position": 9,
+    "filepath": "src/pages/slides/Slide09Closing.tsx",
+    "title": "Gliders 2, Here We Come",
+    "description": "Closing slide — status ready, registration window set",
+    "speakerNotes": ""
+  }
+]
