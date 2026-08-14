@@ -39,10 +39,8 @@ const cache = new Map<string, { at: number; classes: UpcomingClass[] }>();
 
 const MAX_PER_KEYWORD = 4;
 
-const ALLOWED_SITES = [
-  "edmonds community centre",
-  "rosemary brown community centre",
-];
+// Catalog names: "Edmonds Community Centre (ECC)", "Rosemary Brown Recreation Centre (RBR)"
+const ALLOWED_SITES = ["edmonds", "rosemary brown"];
 
 async function searchKeyword(keyword: string): Promise<UpcomingClass[]> {
   const cached = cache.get(keyword);
