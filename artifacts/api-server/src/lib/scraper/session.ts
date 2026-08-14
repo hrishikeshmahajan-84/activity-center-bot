@@ -19,7 +19,8 @@ import { logger } from "../logger";
 // Point Playwright to the persistent browser installation.
 // Falls back to system Chromium (installed via nix-env) if the env var is not set.
 if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
-  process.env.PLAYWRIGHT_BROWSERS_PATH = "/home/runner/.playwright-browsers";
+  process.env.PLAYWRIGHT_BROWSERS_PATH =
+    "/home/runner/workspace/.playwright-browsers";
 }
 
 export const SITE_URL =

@@ -13,12 +13,20 @@ import { sendStartupPing } from "./lib/sms";
 // We set PLAYWRIGHT_BROWSERS_PATH here (before session.ts is ever imported) so
 // both the install CLI and the Playwright Node API agree on the directory.
 const PLAYWRIGHT_BROWSERS_PATH =
-  process.env.PLAYWRIGHT_BROWSERS_PATH ?? "/home/runner/.playwright-browsers";
+  process.env.PLAYWRIGHT_BROWSERS_PATH ??
+  "/home/runner/workspace/.playwright-browsers";
 process.env.PLAYWRIGHT_BROWSERS_PATH = PLAYWRIGHT_BROWSERS_PATH;
 
 (function ensurePlaywrightBrowser() {
-  // Prefer the locally-installed playwright binary (pnpm workspace root).
-  const candidates = ["./node_modules/.bin/playwright", "playwright"];
+  // pnpm does NOT hoist .bin to the workspace root — the playwright binary
+  // lives in the package's own node_modules. Cover both possible CWDs:
+  // deployment runs from the workspace root, dev runs from artifacts/api-server.
+  const candidates = [
+    "/home/runner/workspace/artifacts/api-server/node_modules/.bin/playwright",
+    "artifacts/api-server/node_modules/.bin/playwright",
+    "node_modules/.bin/playwright",
+    "playwright",
+  ];
   for (const bin of candidates) {
     try {
       execFileSync(bin, ["install", "chromium"], {
