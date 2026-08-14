@@ -143,12 +143,9 @@ export function Dashboard() {
   const createTarget = useCreateTarget();
   const activeTargetList = (targets ?? []).filter(t => t.status === "active");
   const targetedLevels = new Set(activeTargetList.map(t => t.level.toLowerCase()));
-  const targetedPrograms = new Set(activeTargetList.map(t => t.activityName.toLowerCase()));
   const programOf = (keyword: string) =>
     /^(preschool|swimmer)/i.test(keyword) ? "Swimming" : /^glider/i.test(keyword) ? "Ice Skating" : keyword;
-  const isTargeted = (keyword: string) =>
-    targetedLevels.has(keyword.toLowerCase()) ||
-    targetedPrograms.has(programOf(keyword).toLowerCase());
+  const isTargeted = (keyword: string) => targetedLevels.has(keyword.toLowerCase());
   const handleAutoBook = (c: (typeof upcomingClasses)[number]) => {
     createTarget.mutate(
       {
