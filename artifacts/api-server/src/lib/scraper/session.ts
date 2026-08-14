@@ -190,11 +190,28 @@ async function login(p: Page): Promise<void> {
   logger.info({ url: `${SITE_URL}/signin` }, "Navigating to login page");
   await p.goto(`${SITE_URL}/signin`, { waitUntil: "networkidle", timeout: 30_000 });
 
+  // If the session cookie is still valid, the signin page redirects straight
+  // back to the account area — we're already logged in.
+  if (!p.url().includes("/signin") && !p.url().includes("/login")) {
+    logger.info({ url: p.url() }, "Already logged in – signin redirected to account");
+    return;
+  }
+
   // Fill email – try multiple selector strategies
   const emailInput = p.locator(
     'input[type="email"], input[name="email"], input[id*="email" i], input[placeholder*="email" i]'
   ).first();
-  await emailInput.waitFor({ timeout: 10_000 });
+  try {
+    await emailInput.waitFor({ timeout: 10_000 });
+  } catch (err) {
+    // Late redirect race: field never appeared because we got bounced to the
+    // account page after the initial URL check.
+    if (!p.url().includes("/signin") && !p.url().includes("/login")) {
+      logger.info({ url: p.url() }, "Already logged in – signin redirected during wait");
+      return;
+    }
+    throw err;
+  }
   await emailInput.fill(username);
 
   // Fill password

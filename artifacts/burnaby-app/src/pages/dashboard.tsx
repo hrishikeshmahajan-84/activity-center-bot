@@ -9,8 +9,8 @@ import { ActivityIllustration } from "@/components/activity-illustration";
 /** Pick an emoji based on activity name */
 function activityEmoji(name: string): string {
   const n = (name ?? "").toLowerCase();
-  if (n.includes("swim")) return "🏊";
-  if (n.includes("skat") || n.includes("ice")) return "⛸️";
+  if (n.includes("swim") || n.includes("preschool")) return "🏊";
+  if (n.includes("skat") || n.includes("ice") || n.includes("glider")) return "⛸️";
   if (n.includes("gym")) return "🤸";
   if (n.includes("danc")) return "💃";
   if (n.includes("art") || n.includes("craft")) return "🎨";
@@ -40,6 +40,41 @@ function StatusPill({ status }: { status: string }) {
       {s.label}
     </span>
   );
+}
+
+/**
+ * Level progressions for Burnaby programs. A child must clear the current
+ * level before moving to the next one, so we only surface the immediate
+ * next step for each program he's currently in.
+ */
+const PROGRESSIONS: { pattern: RegExp; prefix: string; max: number }[] = [
+  { pattern: /preschool\s*(\d)/i, prefix: "Preschool", max: 5 },
+  { pattern: /swimmer\s*(\d)/i, prefix: "Swimmer", max: 6 },
+  { pattern: /gliders?\s*(\d)/i, prefix: "Gliders", max: 5 },
+];
+
+type FutureActivity = { program: string; next: string; after: string };
+
+/** Derive the next possible level for each program found in current activity names */
+function futureActivities(names: string[]): FutureActivity[] {
+  const best = new Map<string, number>();
+  for (const name of names) {
+    for (const { pattern, prefix, max } of PROGRESSIONS) {
+      const m = name.match(pattern);
+      if (m) {
+        const n = parseInt(m[1]!, 10);
+        if (n < max) {
+          const cur = best.get(prefix);
+          if (cur === undefined || n > cur) best.set(prefix, n);
+        }
+      }
+    }
+  }
+  return [...best.entries()].map(([prefix, n]) => ({
+    program: prefix,
+    next: `${prefix} ${n + 1}`,
+    after: `${prefix} ${n}`,
+  }));
 }
 
 /** Days until a date string, or null */
@@ -76,6 +111,11 @@ export function Dashboard() {
     // Exclude activities whose registration date has already passed
     (!t.registrationDate || t.registrationDate >= today)
   ) || [];
+
+  const upNext = futureActivities([
+    ...(registrationsRes?.registrations?.map(r => `${r.name} ${r.level ?? ""}`) ?? []),
+    ...(targets?.map(t => `${t.activityName} ${t.level ?? ""}`) ?? []),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -324,52 +364,38 @@ export function Dashboard() {
 
         {/* ── Right: Enrollments + Recent Log ── */}
         <div className="space-y-6">
-          {/* Already Enrolled */}
+          {/* Future Possible Activities */}
           <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-card-border flex justify-between items-center bg-emerald-50">
-              <h2 className="font-extrabold text-sm flex items-center gap-2 text-emerald-800">
-                🏆 Already Signed Up!
+            <div className="p-4 border-b border-card-border bg-sky-50">
+              <h2 className="font-extrabold text-sm flex items-center gap-2 text-sky-800">
+                🚀 Up Next for Agastya
               </h2>
-              <button
-                onClick={handleScrape}
-                disabled={triggerScrape.isPending}
-                className="w-8 h-8 rounded-xl bg-emerald-100 hover:bg-emerald-200 border border-emerald-200 flex items-center justify-center transition-colors"
-              >
-                <RefreshCw className={cn("w-3.5 h-3.5 text-emerald-700", triggerScrape.isPending && "animate-spin")} />
-              </button>
+              <p className="text-[11px] text-sky-700/80 font-medium mt-0.5">
+                He needs to clear his current level before moving up
+              </p>
             </div>
 
             <div>
               {regLoading ? (
                 <div className="p-6 text-center text-sm text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : registrationsRes?.registrations && registrationsRes.registrations.length > 0 ? (
+              ) : upNext.length > 0 ? (
                 <div className="divide-y divide-card-border">
-                  {registrationsRes.registrations.map((reg, idx) => (
-                    <div key={idx} className="p-4 flex items-start gap-3 hover:bg-muted/30 transition-colors">
-                      <span className="text-xl mt-0.5">{activityEmoji(reg.name)}</span>
+                  {upNext.map(f => (
+                    <div key={f.program} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors">
+                      <span className="text-xl">{activityEmoji(f.program)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-sm text-foreground">{reg.name}</div>
-                        {reg.level && <div className="text-xs text-muted-foreground font-medium">{reg.level}</div>}
-                        <div className="mt-1.5 text-[11px] text-muted-foreground font-medium space-y-0.5">
-                          {reg.dates && <div>📅 {reg.dates}</div>}
-                          {reg.times && <div>🕐 {reg.times}</div>}
-                        </div>
+                        <span className="font-bold text-sm text-foreground">{f.next}</span>
+                        <span className="ml-2 text-[11px] text-muted-foreground font-medium">
+                          🔒 after he passes {f.after}
+                        </span>
                       </div>
                     </div>
                   ))}
-                  <div className="p-3 bg-muted/30 text-[10px] text-muted-foreground font-medium text-center">
-                    Updated {format(parseISO(registrationsRes.scrapedAt), "h:mm a")}
-                  </div>
-                </div>
-              ) : registrationsRes?.error ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  <span className="text-2xl block mb-2">🤔</span>
-                  Couldn't load right now
                 </div>
               ) : (
                 <div className="p-6 text-center text-sm text-muted-foreground font-medium">
-                  <span className="text-2xl block mb-2">📭</span>
-                  None found yet
+                  <span className="text-2xl block mb-2">🗺️</span>
+                  Nothing to suggest yet
                 </div>
               )}
             </div>
