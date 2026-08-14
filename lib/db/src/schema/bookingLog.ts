@@ -1,10 +1,10 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const bookingLogTable = pgTable("booking_log", {
   id: serial("id").primaryKey(),
-  targetId: serial("target_id"),
+  targetId: integer("target_id"),
   activityName: text("activity_name").notNull(),
   level: text("level").notNull(),
   outcome: text("outcome").notNull(), // success | failed | no_spot | scraper_error | window_closed

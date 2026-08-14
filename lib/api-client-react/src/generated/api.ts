@@ -23,12 +23,15 @@ import type {
   ActivityTarget,
   ActivityTargetInput,
   ActivityTargetUpdate,
+  BookingAttemptResult,
   BookingLogEntry,
+  CheckAndBookInput,
   CurrentRegistrationsResult,
   HealthStatus,
   ListBookingsParams,
   SchedulerStatus,
-  SchedulerTriggerResult
+  SchedulerTriggerResult,
+  ScraperStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -734,6 +737,155 @@ export const useTriggerScrape = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getTriggerScrapeMutationOptions(options));
+    }
+
+export const getGetScraperStatusUrl = () => {
+
+
+
+
+  return `/api/scrape/status`
+}
+
+/**
+ * @summary Check scraper configuration status (credentials present)
+ */
+export const getScraperStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<ScraperStatus> => {
+
+  return customFetch<ScraperStatus>(getGetScraperStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScraperStatusQueryKey = () => {
+    return [
+    `/api/scrape/status`
+    ] as const;
+    }
+
+
+export const getGetScraperStatusQueryOptions = <TData = Awaited<ReturnType<typeof getScraperStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getScraperStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScraperStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getScraperStatus>>> = ({ signal }) => getScraperStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getScraperStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetScraperStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getScraperStatus>>>
+export type GetScraperStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check scraper configuration status (credentials present)
+ */
+
+export function useGetScraperStatus<TData = Awaited<ReturnType<typeof getScraperStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getScraperStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetScraperStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCheckAndBookUrl = (targetId: number,) => {
+
+
+
+
+  return `/api/scrape/check-and-book/${targetId}`
+}
+
+/**
+ * @summary Check if target activity registration is open and book if so
+ */
+export const checkAndBook = async (targetId: number,
+    checkAndBookInput?: CheckAndBookInput, options?: Parameters<typeof customFetch>[1]): Promise<BookingAttemptResult> => {
+
+  return customFetch<BookingAttemptResult>(getCheckAndBookUrl(targetId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(checkAndBookInput)
+  }
+);}
+
+
+
+
+
+export const getCheckAndBookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkAndBook>>, TError,{targetId: number;data?: BodyType<CheckAndBookInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkAndBook>>, TError,{targetId: number;data?: BodyType<CheckAndBookInput>}, TContext> => {
+
+const mutationKey = ['checkAndBook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkAndBook>>, {targetId: number;data?: BodyType<CheckAndBookInput>}> = (props) => {
+          const {targetId,data} = props ?? {};
+
+          return  checkAndBook(targetId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckAndBookMutationResult = NonNullable<Awaited<ReturnType<typeof checkAndBook>>>
+    export type CheckAndBookMutationBody = BodyType<CheckAndBookInput> | undefined
+    export type CheckAndBookMutationError = ErrorType<void>
+
+    /**
+ * @summary Check if target activity registration is open and book if so
+ */
+export const useCheckAndBook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkAndBook>>, TError,{targetId: number;data?: BodyType<CheckAndBookInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof checkAndBook>>,
+        TError,
+        {targetId: number;data?: BodyType<CheckAndBookInput>},
+        TContext
+      > => {
+      return useMutation(getCheckAndBookMutationOptions(options));
     }
 
 export const getGetSchedulerStatusUrl = () => {

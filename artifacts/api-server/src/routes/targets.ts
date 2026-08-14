@@ -12,6 +12,7 @@ import {
   UpdateTargetResponse,
   DeleteTargetParams,
 } from "@workspace/api-zod";
+import { requireApiKey } from "../middleware/apiKey";
 
 const router: IRouter = Router();
 

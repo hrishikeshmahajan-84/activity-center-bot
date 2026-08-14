@@ -193,6 +193,39 @@ export const TriggerScrapeResponse = zod.object({
 
 
 /**
+ * @summary Check scraper configuration status (credentials present)
+ */
+export const GetScraperStatusResponse = zod.object({
+  "configured": zod.boolean(),
+  "hasCredentials": zod.boolean(),
+  "memberId": zod.string().nullish(),
+  "siteUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Check if target activity registration is open and book if so
+ */
+export const CheckAndBookParams = zod.object({
+  "targetId": zod.coerce.number()
+})
+
+export const CheckAndBookBody = zod.object({
+  "dryRun": zod.boolean().optional().describe('If true, run the full checkout flow but stop before final payment confirmation')
+})
+
+export const CheckAndBookResponse = zod.object({
+  "outcome": zod.enum(['success', 'failed', 'no_spot', 'scraper_error', 'registration_not_open', 'not_configured']),
+  "message": zod.string(),
+  "confirmationNumber": zod.string().nullish(),
+  "classDate": zod.string().nullish(),
+  "classTime": zod.string().nullish(),
+  "dryRun": zod.boolean(),
+  "logEntryId": zod.number().nullish()
+})
+
+
+/**
  * @summary Get scheduler status and next scheduled checks
  */
 export const GetSchedulerStatusResponse = zod.object({

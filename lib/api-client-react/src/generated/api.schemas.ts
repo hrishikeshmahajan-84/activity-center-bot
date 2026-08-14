@@ -183,6 +183,46 @@ export interface SchedulerStatus {
   checkedAt: string;
 }
 
+export interface ScraperStatus {
+  configured: boolean;
+  hasCredentials: boolean;
+  /** @nullable */
+  memberId?: string | null;
+  /** @nullable */
+  siteUrl?: string | null;
+}
+
+export interface CheckAndBookInput {
+  /** If true, run the full checkout flow but stop before final payment confirmation */
+  dryRun?: boolean;
+}
+
+export type BookingAttemptResultOutcome = typeof BookingAttemptResultOutcome[keyof typeof BookingAttemptResultOutcome];
+
+
+export const BookingAttemptResultOutcome = {
+  success: 'success',
+  failed: 'failed',
+  no_spot: 'no_spot',
+  scraper_error: 'scraper_error',
+  registration_not_open: 'registration_not_open',
+  not_configured: 'not_configured',
+} as const;
+
+export interface BookingAttemptResult {
+  outcome: BookingAttemptResultOutcome;
+  message: string;
+  /** @nullable */
+  confirmationNumber?: string | null;
+  /** @nullable */
+  classDate?: string | null;
+  /** @nullable */
+  classTime?: string | null;
+  dryRun: boolean;
+  /** @nullable */
+  logEntryId?: number | null;
+}
+
 export interface SchedulerTriggerResult {
   triggered: boolean;
   message: string;
