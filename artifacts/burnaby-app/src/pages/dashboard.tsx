@@ -142,10 +142,15 @@ export function Dashboard() {
   // Create a robot booking target straight from an Up Next class
   const createTarget = useCreateTarget();
   const activeTargetList = (targets ?? []).filter(t => t.status === "active");
-  const targetedLevels = new Set(activeTargetList.map(t => t.level.toLowerCase()));
   const programOf = (keyword: string) =>
     /^(preschool|swimmer)/i.test(keyword) ? "Swimming" : /^glider/i.test(keyword) ? "Ice Skating" : keyword;
-  const isTargeted = (keyword: string) => targetedLevels.has(keyword.toLowerCase());
+  // A class is "Robot is on it" only when there's an active target whose level
+  // AND registrationDate both match — prevents false badges on already-open
+  // classes that share a level name with a future target.
+  const isTargeted = (keyword: string, classRegDate: string | null | undefined) =>
+    activeTargetList.some(
+      t => t.level.toLowerCase() === keyword.toLowerCase() && t.registrationDate === (classRegDate ?? null)
+    );
   const handleAutoBook = (c: (typeof upcomingClasses)[number]) => {
     createTarget.mutate(
       {
@@ -368,7 +373,7 @@ export function Dashboard() {
                         {c.site && <div>📍 {c.site}</div>}
                       </div>
                       <div className="mt-2">
-                        {isTargeted(c.keyword) ? (
+                        {isTargeted(c.keyword, c.registrationDate) ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
                             🤖 Robot is on it
                           </span>
