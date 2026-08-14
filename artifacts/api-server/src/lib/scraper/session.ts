@@ -183,6 +183,7 @@ async function isAuthenticated(p: Page): Promise<boolean> {
   }
 }
 
+// hint: Logic changed on both sides. Requires understanding intent of each change.
 async function login(p: Page): Promise<void> {
   const username = process.env.BURNABY_USERNAME;
   const password = process.env.BURNABY_PASSWORD;

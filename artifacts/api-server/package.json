@@ -8,7 +8,8 @@
     "build": "node ./build.mjs && export PLAYWRIGHT_BROWSERS_PATH=/home/runner/workspace/.playwright-browsers && (playwright install chromium --with-deps 2>/dev/null || playwright install chromium 2>/dev/null || true) && node -e \"const fs=require('fs');const p=process.env.PLAYWRIGHT_BROWSERS_PATH;const ok=fs.existsSync(p)&&fs.readdirSync(p).some(d=>d.startsWith('chromium'));if(!ok){console.error('Chromium missing at '+p);if(process.env.NODE_ENV==='production')process.exit(1)}\"",
     "start": "export PLAYWRIGHT_BROWSERS_PATH=/home/runner/workspace/.playwright-browsers && node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke:scrape": "node scripts/smoke-scrape.mjs"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",

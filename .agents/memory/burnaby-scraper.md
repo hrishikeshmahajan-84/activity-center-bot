@@ -20,3 +20,6 @@ description: Durable architectural lessons for the Playwright session manager.
 **Member ID gotcha:** a stale BURNABY_MEMBER_ID secret silently filters all schedules to zero (or targets the wrong family member). The scraper validates the configured ID against the family list from `/filters` and fails loudly if it doesn't match.
 
 **Browser strategy:** Nix-installed chromium (system dep, ships with deployment, self-contained libs) is the working fallback; Playwright's downloaded binary lacks libglib in BOTH dev and the deployed container. Resolve nix chromium via `which chromium` at launch time.
+
+## Signin redirect when session already valid
+The site redirects `/signin` away (to /myaccount) when a session cookie is still valid, so the login form never renders. Login flow must treat "redirected off /signin" as already-authenticated instead of waiting for the email input — otherwise a valid session masquerades as a browser/auth timeout failure. Note `isAuthenticated()`'s sign-in-link heuristic yields false negatives on logged-in pages, so login() is re-entered often; the redirect check makes that harmless.
