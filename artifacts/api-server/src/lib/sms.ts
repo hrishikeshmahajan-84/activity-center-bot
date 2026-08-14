@@ -153,7 +153,7 @@ export async function notifyBookingSuccess(
 
 /** Sent 30 minutes before the check window opens, as a manual-backup heads-up. */
 export async function notifyWindowOpening(target: TargetInfo): Promise<boolean> {
-  const windowStart = target.checkWindowStart ?? "09:00";
+  const windowStart = target.checkWindowStart ?? "09:50";
   // Format "HH:MM" → "9:00am" / "2:30pm" style
   const [hStr, mStr] = windowStart.split(":");
   const h = parseInt(hStr ?? "9", 10);
@@ -170,7 +170,7 @@ export async function notifyWindowOpening(target: TargetInfo): Promise<boolean> 
 
 /** Sent once when the check window closes without a successful booking. */
 export async function notifyWindowEnded(target: TargetInfo): Promise<boolean> {
-  const windowEnd = target.checkWindowEnd ?? "11:00";
+  const windowEnd = target.checkWindowEnd ?? "10:10";
   return sendSms(
     `⚠️ No booking made for ${target.activityName} – ${target.level}. ` +
       `Registration window ended at ${windowEnd} PT. Check the app for details.`

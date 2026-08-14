@@ -163,8 +163,8 @@ async function tickTarget(
     return { ...base, action: "skipped", message: "Registration date has passed", smsSent: false };
   }
 
-  const windowStart = target.checkWindowStart ?? "09:00";
-  const windowEnd = target.checkWindowEnd ?? "11:00";
+  const windowStart = target.checkWindowStart ?? "09:50";
+  const windowEnd = target.checkWindowEnd ?? "10:10";
   const startMin = parseTime(windowStart);
   const endMin = parseTime(windowEnd);
   const currentMin = van.totalMinutes;

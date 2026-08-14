@@ -347,10 +347,10 @@ components:
           description: "YYYY-MM-DD"
         checkWindowStart:
           type: string
-          description: "HH:MM in America/Vancouver, default 09:00"
+          description: "HH:MM in America/Vancouver, default 09:50"
         checkWindowEnd:
           type: string
-          description: "HH:MM in America/Vancouver, default 11:00"
+          description: "HH:MM in America/Vancouver, default 10:10"
         notes:
           type: string
 

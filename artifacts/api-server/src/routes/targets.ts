@@ -38,8 +38,8 @@ router.post("/targets", async (req, res): Promise<void> => {
       activityName: data.activityName,
       level: data.level,
       registrationDate: data.registrationDate ?? null,
-      checkWindowStart: data.checkWindowStart ?? "09:00",
-      checkWindowEnd: data.checkWindowEnd ?? "11:00",
+      checkWindowStart: data.checkWindowStart ?? "09:50",
+      checkWindowEnd: data.checkWindowEnd ?? "10:10",
       notes: data.notes ?? null,
       status: "active",
     })
@@ -86,8 +86,8 @@ router.patch("/targets/:id", async (req, res): Promise<void> => {
   if (data.activityName !== undefined) updateData.activityName = data.activityName;
   if (data.level !== undefined) updateData.level = data.level;
   if ("registrationDate" in data) updateData.registrationDate = data.registrationDate ?? null;
-  if ("checkWindowStart" in data) updateData.checkWindowStart = data.checkWindowStart ?? "09:00";
-  if ("checkWindowEnd" in data) updateData.checkWindowEnd = data.checkWindowEnd ?? "11:00";
+  if ("checkWindowStart" in data) updateData.checkWindowStart = data.checkWindowStart ?? "09:50";
+  if ("checkWindowEnd" in data) updateData.checkWindowEnd = data.checkWindowEnd ?? "10:10";
   if ("notes" in data) updateData.notes = data.notes ?? null;
   if (data.status !== undefined) updateData.status = data.status;
 

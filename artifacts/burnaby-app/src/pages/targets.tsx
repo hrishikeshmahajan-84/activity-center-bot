@@ -166,8 +166,8 @@ export function TargetForm() {
     activityName: "",
     level: "",
     registrationDate: "",
-    checkWindowStart: "09:00",
-    checkWindowEnd: "11:00",
+    checkWindowStart: "09:50",
+    checkWindowEnd: "10:10",
     notes: "",
     status: "active" as ActivityTargetStatus,
   });
@@ -177,8 +177,8 @@ export function TargetForm() {
       activityName: existingTarget.activityName,
       level: existingTarget.level,
       registrationDate: existingTarget.registrationDate || "",
-      checkWindowStart: existingTarget.checkWindowStart || "09:00",
-      checkWindowEnd: existingTarget.checkWindowEnd || "11:00",
+      checkWindowStart: existingTarget.checkWindowStart || "09:50",
+      checkWindowEnd: existingTarget.checkWindowEnd || "10:10",
       notes: existingTarget.notes || "",
       status: existingTarget.status,
     });

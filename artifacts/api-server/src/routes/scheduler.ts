@@ -34,8 +34,8 @@ router.get("/scheduler/status", async (_req, res): Promise<void> => {
       schedulerState = "cancelled";
     } else if (t.registrationDate === van.dateStr) {
       // Today is registration day — check whether we're inside the window
-      const windowStart = t.checkWindowStart ?? "09:00";
-      const windowEnd = t.checkWindowEnd ?? "11:00";
+      const windowStart = t.checkWindowStart ?? "09:50";
+      const windowEnd = t.checkWindowEnd ?? "10:10";
       const parseTime = (s: string) => {
         const [h, m] = s.split(":").map(Number);
         return (h ?? 0) * 60 + (m ?? 0);
@@ -56,8 +56,8 @@ router.get("/scheduler/status", async (_req, res): Promise<void> => {
       // The registration date string plus window start time in Vancouver
       // We append the registration date + window start and interpret in Vancouver by
       // letting the browser / display layer handle it. We store as ISO UTC.
-      const windowStart = t.checkWindowStart ?? "09:00";
-      const windowEnd = t.checkWindowEnd ?? "11:00";
+      const windowStart = t.checkWindowStart ?? "09:50";
+      const windowEnd = t.checkWindowEnd ?? "10:10";
 
       // Build a Vancouver-midnight for the registration date, then add window start
       const regDateVan = new Date(
