@@ -4,6 +4,7 @@ import { RefreshCw, Play } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ActivityIllustration } from "@/components/activity-illustration";
 
 /** Pick an emoji based on activity name */
 function activityEmoji(name: string): string {
@@ -162,7 +163,6 @@ export function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {activeTargets.map(t => {
             const days = daysUntil(t.registrationDate);
-            const emoji = activityEmoji(t.activityName);
             const colors = [
               { bg: "bg-blue-50 border-blue-200",     accent: "bg-blue-500",   textAccent: "text-blue-700" },
               { bg: "bg-orange-50 border-orange-200", accent: "bg-orange-400", textAccent: "text-orange-700" },
@@ -175,7 +175,7 @@ export function Dashboard() {
               <div key={t.id} className={cn("rounded-3xl border-2 p-5 overflow-hidden relative", col.bg)}>
                 <div className={cn("absolute top-0 right-0 w-24 h-24 rounded-full opacity-10", col.accent)} style={{ transform: "translate(30%,-30%)" }} />
                 <div className="flex items-start justify-between mb-3">
-                  <span className="text-4xl wiggle inline-block">{emoji}</span>
+                  <ActivityIllustration activityName={t.activityName} size="lg" className="wiggle" />
                   <StatusPill status={t.status} />
                 </div>
                 <div className="font-extrabold text-lg text-foreground leading-tight">{t.activityName}</div>
