@@ -53,6 +53,10 @@ Personal automation dashboard for registering a 5-year-old for Orca swimming and
 - SMS notifications via Twilio to configured phone number
 - Run scheduler on registration day only, not continuously
 
+## Ops runbook
+
+- **After upgrading Twilio from trial to paid**: delete the `TWILIO_TRIAL_ACCOUNT` secret (or set it to anything other than `"true"`). Leaving it set will prepend the trial prefix to every outbound SMS. The SMS helper logs a `warn`-level message in production whenever the prefix is applied, so check server logs if messages look wrong.
+
 ## Gotchas
 
 - After any `lib/api-spec/openapi.yaml` change, always run `pnpm --filter @workspace/api-spec run codegen` before touching backend routes (Zod schema names are derived by Orval from operationIds).

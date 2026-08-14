@@ -73,6 +73,13 @@ export async function sendSms(body: string): Promise<boolean> {
   }
 
   // Apply trial prefix upfront when the account is explicitly flagged.
+  if (isTrialAccount() && process.env.NODE_ENV === "production") {
+    logger.warn(
+      "TWILIO_TRIAL_ACCOUNT=true is set in production – outbound messages will " +
+        "include the trial prefix. If you have upgraded to a paid Twilio account, " +
+        "delete the TWILIO_TRIAL_ACCOUNT secret to remove the prefix."
+    );
+  }
   const outboundBody = isTrialAccount() ? applyTrialPrefix(body) : body;
 
   try {
