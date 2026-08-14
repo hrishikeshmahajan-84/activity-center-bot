@@ -9,6 +9,11 @@ description: How to get Playwright's Chromium running in the Replit NixOS dev en
 1. *Dev (NixOS)*: Chromium binaries (whether Playwright-managed or Nix-packaged) cannot execute due to kernel seccomp restrictions and glibc library conflicts. This is a permanent environment limitation; the scraper gracefully returns an error.
 2. *Deployed container*: `playwright install` must run at process startup to download the binary (~100 MB) into `/home/runner/.playwright-browsers/`. The artifact's production run command is `node --enable-source-maps artifacts/api-server/dist/index.mjs` — it bypasses `package.json` scripts entirely, so `playwright install` must be called from inside `index.ts` (using `execFileSync('./node_modules/.bin/playwright', ['install', 'chromium'])`).
 
+**Additional gotchas learned the hard way:**
+- pnpm does NOT hoist `.bin` to the workspace root — `node_modules/.bin/playwright` only exists under `artifacts/api-server/node_modules/`. Runtime install attempts from the workspace root silently failed for this reason.
+- Deployments triggered by task-agent merges are built from the *task agent's snapshot*, not current main — a fix committed to main after the agent started is absent from that deployment. Only a fresh user publish rebuilds from current main.
+- Final working design: install Chromium at **build time** into `/home/runner/workspace/.playwright-browsers` (inside the workspace → included in the deployment image). The `build` script does the install; `index.ts` keeps a runtime install as fallback. `.playwright-browsers/` is gitignored.
+
 **How to apply:**
 - `artifacts/api-server/src/index.ts` contains `ensurePlaywrightBrowser()` which runs synchronously before `app.listen()`. Do not remove it.
 - `PLAYWRIGHT_BROWSERS_PATH` is set to `/home/runner/.playwright-browsers` in `index.ts` before any scraper module loads. `session.ts` respects this and skips its own default assignment.
