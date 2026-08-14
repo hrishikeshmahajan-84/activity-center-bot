@@ -13,6 +13,8 @@
  *   BURNABY_SITE_URL  – base URL (default "https://anc.ca.apm.activecommunities.com/burnaby")
  */
 
+import fs from "fs";
+import path from "path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { logger } from "../logger";
 
@@ -59,17 +61,49 @@ const LAUNCH_ARGS = [
   "--disable-blink-features=AutomationControlled",
 ];
 
+/**
+ * Locate the Chromium binary installed at build time inside the workspace.
+ * We resolve the executable path ourselves instead of relying on Playwright's
+ * registry, because Playwright snapshots PLAYWRIGHT_BROWSERS_PATH at module
+ * load time — before our code can set it when the server is started with a
+ * plain `node dist/index.mjs` (as the deployed container does).
+ */
+function findManagedChromium(): string | null {
+  const root =
+    process.env.PLAYWRIGHT_BROWSERS_PATH ??
+    "/home/runner/workspace/.playwright-browsers";
+  try {
+    for (const dir of fs.readdirSync(root)) {
+      if (!dir.startsWith("chromium")) continue;
+      const candidates = [
+        path.join(root, dir, "chrome-headless-shell-linux64", "chrome-headless-shell"),
+        path.join(root, dir, "chrome-linux", "chrome"),
+      ];
+      for (const exe of candidates) {
+        if (fs.existsSync(exe)) return exe;
+      }
+    }
+  } catch {
+    // directory missing – fall through
+  }
+  return null;
+}
+
 async function launchBrowser(): Promise<Browser> {
   if (browser?.isConnected()) return browser;
 
   logger.info("Launching Playwright Chromium browser");
 
-  // Prefer the Playwright-managed headless shell (PLAYWRIGHT_BROWSERS_PATH is set at
-  // module load time to /home/runner/.playwright-browsers). Only fall back to the Nix
-  // system Chromium if the managed binary is missing or fails to start.
+  // Prefer the workspace-bundled Chromium (installed at build time), resolved
+  // explicitly by path. Only fall back to Nix system Chromium if missing.
   try {
-    browser = await chromium.launch({ headless: true, args: LAUNCH_ARGS });
-    logger.info("Launched Playwright-managed Chromium");
+    const managedPath = findManagedChromium();
+    browser = await chromium.launch({
+      headless: true,
+      args: LAUNCH_ARGS,
+      ...(managedPath ? { executablePath: managedPath } : {}),
+    });
+    logger.info({ executablePath: managedPath ?? "(registry default)" }, "Launched Playwright-managed Chromium");
   } catch (managedErr) {
     const nixPath =
       process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
