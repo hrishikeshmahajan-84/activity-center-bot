@@ -310,170 +310,161 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Left: Scheduler + Targets ── */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Scheduler Status */}
-          <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-card-border flex items-center justify-between bg-blue-50">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-500 flex items-center justify-center text-2xl shadow-sm">
-                  🤖
-                </div>
-                <div>
-                  <h2 className="font-extrabold text-base">My Robot Helper — booking these next</h2>
-                  <div className="text-xs font-bold flex items-center gap-1.5 mt-0.5">
-                    {scheduler?.isRunning ? (
-                      <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-emerald-600">Watching for spots!</span></>
-                    ) : (
-                      <><span className="w-2 h-2 rounded-full bg-gray-400" />
-                      <span className="text-muted-foreground">Resting…</span></>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRunScheduler}
-                disabled={triggerScheduler.isPending}
-                className="rounded-xl border-2 font-bold text-xs bg-white hover:bg-blue-50 border-blue-200 text-blue-700"
-              >
-                {triggerScheduler.isPending
-                  ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  : <Play className="w-3.5 h-3.5 mr-1.5" />}
-                Check Now!
-              </Button>
+      {/* ── Up Next for Agastya ── */}
+      <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
+        <div className="px-5 pt-5 pb-3 border-b border-card-border bg-sky-50 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-2xl">🚀</span>
+              <h2 className="text-lg font-extrabold text-sky-900">Up Next for Agastya</h2>
             </div>
-
-            <div>
-              {schedulerLoading ? (
-                <div className="p-8 text-center text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : scheduler?.targets && scheduler.targets.length > 0 ? (
-                <div className="divide-y divide-card-border">
-                  {scheduler.targets.map(st => (
-                    <div key={st.targetId} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{activityEmoji(st.activityName)}</span>
-                        <div>
-                          <div className="font-bold text-sm">{st.activityName}
-                            <span className="text-muted-foreground font-medium ml-2 text-xs">{st.level}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground font-medium mt-0.5">
-                            📆 {st.registrationDate ? `Books on ${format(parseISO(st.registrationDate), "MMM d, yyyy")}` : "No sign-up date set"}
-                            <span className="ml-3">⏰ {st.checkWindowStart} – {st.checkWindowEnd} PT</span>
-                          </div>
-                        </div>
-                      </div>
-                      <StatusPill status={st.schedulerState} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                  <span className="text-4xl">🤷</span>
-                  <p className="font-bold">No activities to watch yet!</p>
-                  <p className="text-sm">Add some activities in the Activities page.</p>
-                </div>
-              )}
-            </div>
+            <p className="text-xs font-semibold text-sky-700 ml-9">
+              He needs to clear his current level before moving up
+            </p>
           </div>
-
         </div>
 
-        {/* ── Right: Enrollments + Recent Log ── */}
-        <div className="space-y-6">
-          {/* Future Possible Activities */}
-          <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-card-border bg-sky-50">
-              <h2 className="font-extrabold text-sm flex items-center gap-2 text-sky-800">
-                🚀 Up Next for Agastya
-              </h2>
-              <p className="text-[11px] text-sky-700/80 font-medium mt-0.5">
-                He needs to clear his current level before moving up
-              </p>
-            </div>
-
-            <div>
-              {regLoading || upcomingLoading ? (
-                <div className="p-6 text-center text-sm text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : upcomingClasses.length > 0 ? (
-                <div className="divide-y divide-card-border">
-                  {upcomingClasses.map((c, idx) => {
-                    const isNextLevel = nextLevels.has(c.keyword);
-                    return (
-                      <div key={idx} className="px-4 py-3 flex items-start gap-3 hover:bg-muted/30 transition-colors">
-                        <span className="text-xl mt-0.5">{activityEmoji(c.name)}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm text-foreground">{c.name}</span>
-                            {c.courseNumber && (
-                              <span className="text-[10px] font-bold text-muted-foreground">#{c.courseNumber}</span>
-                            )}
-                            {isNextLevel ? (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                🔒 after {currentOf.get(c.keyword)}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                ✅ can enroll now
-                              </span>
-                            )}
-                            {c.status === "Full" && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">
-                                Full
-                              </span>
-                            )}
-                            {c.openings != null && c.openings > 0 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
-                                {c.openings} spot{c.openings === 1 ? "" : "s"}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 text-[11px] text-muted-foreground font-medium space-y-0.5">
-                            <div>
-                              📆 Registration: {c.registrationDate ?? "open now"}
-                            </div>
-                            {(c.dateStart || c.dateEnd) && (
-                              <div>📅 {c.dateStart}{c.dateEnd && c.dateEnd !== c.dateStart ? ` – ${c.dateEnd}` : ""}</div>
-                            )}
-                            {(c.daysOfWeek || c.times) && (
-                              <div>🕐 {[c.daysOfWeek, c.times].filter(Boolean).join(" · ")}</div>
-                            )}
-                            {c.site && <div>📍 {c.site}</div>}
-                          </div>
-                          <div className="mt-2">
-                            {isTargeted(c.keyword) ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
-                                🤖 Robot is on it
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleAutoBook(c)}
-                                disabled={createTarget.isPending}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
-                              >
-                                🤖 Auto-book this
-                              </button>
-                            )}
-                          </div>
-                        </div>
+        <div>
+          {regLoading || upcomingLoading ? (
+            <div className="p-6 text-center text-sm text-muted-foreground font-medium">Loading… 🔄</div>
+          ) : upcomingClasses.length > 0 ? (
+            <div className="divide-y divide-card-border">
+              {upcomingClasses.map((c, idx) => {
+                const isNextLevel = nextLevels.has(c.keyword);
+                return (
+                  <div key={idx} className="px-5 py-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+                    <span className="text-2xl mt-0.5">{activityEmoji(c.name)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-foreground">{c.name}</span>
+                        {c.courseNumber && (
+                          <span className="text-[10px] font-bold text-muted-foreground">#{c.courseNumber}</span>
+                        )}
+                        {isNextLevel ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            🔒 after {currentOf.get(c.keyword)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            ✅ can enroll now
+                          </span>
+                        )}
+                        {c.status === "Full" && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">
+                            Full
+                          </span>
+                        )}
+                        {c.openings != null && c.openings > 0 && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                            {c.openings} spot{c.openings === 1 ? "" : "s"}
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-6 text-center text-sm text-muted-foreground font-medium">
-                  <span className="text-2xl block mb-2">🗺️</span>
-                  {upcomingRes?.error
-                    ? "Couldn't reach the Burnaby catalog — try again in a bit"
-                    : "No upcoming classes found in the catalog yet"}
-                </div>
-              )}
+                      <div className="mt-1 text-[11px] text-muted-foreground font-medium space-y-0.5">
+                        <div>📆 Registration: {c.registrationDate ?? "open now"}</div>
+                        {(c.dateStart || c.dateEnd) && (
+                          <div>📅 {c.dateStart}{c.dateEnd && c.dateEnd !== c.dateStart ? ` – ${c.dateEnd}` : ""}</div>
+                        )}
+                        {(c.daysOfWeek || c.times) && (
+                          <div>🕐 {[c.daysOfWeek, c.times].filter(Boolean).join(" · ")}</div>
+                        )}
+                        {c.site && <div>📍 {c.site}</div>}
+                      </div>
+                      <div className="mt-2">
+                        {isTargeted(c.keyword) ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                            🤖 Robot is on it
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleAutoBook(c)}
+                            disabled={createTarget.isPending}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
+                          >
+                            🤖 Auto-book this
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-sm text-muted-foreground font-medium">
+              <span className="text-2xl block mb-2">🗺️</span>
+              {upcomingRes?.error
+                ? "Couldn't reach the Burnaby catalog — try again in a bit"
+                : "No upcoming classes found in the catalog yet"}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Robot Helper / Scheduler ── */}
+      <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
+        <div className="px-5 pt-5 pb-3 border-b border-card-border bg-blue-50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-500 flex items-center justify-center text-2xl shadow-sm">
+              🤖
+            </div>
+            <div>
+              <h2 className="font-extrabold text-base">My Robot Helper — booking these next</h2>
+              <div className="text-xs font-bold flex items-center gap-1.5 mt-0.5">
+                {scheduler?.isRunning ? (
+                  <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-emerald-600">Watching for spots!</span></>
+                ) : (
+                  <><span className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="text-muted-foreground">Resting…</span></>
+                )}
+              </div>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRunScheduler}
+            disabled={triggerScheduler.isPending}
+            className="rounded-xl border-2 font-bold text-xs bg-white hover:bg-blue-50 border-blue-200 text-blue-700"
+          >
+            {triggerScheduler.isPending
+              ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              : <Play className="w-3.5 h-3.5 mr-1.5" />}
+            Check Now!
+          </Button>
+        </div>
 
+        <div>
+          {schedulerLoading ? (
+            <div className="p-8 text-center text-muted-foreground font-medium">Loading… 🔄</div>
+          ) : scheduler?.targets && scheduler.targets.length > 0 ? (
+            <div className="divide-y divide-card-border">
+              {scheduler.targets.map(st => (
+                <div key={st.targetId} className="px-5 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{activityEmoji(st.activityName)}</span>
+                    <div>
+                      <div className="font-bold text-sm">{st.activityName}
+                        <span className="text-muted-foreground font-medium ml-2 text-xs">{st.level}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium mt-0.5">
+                        📆 {st.registrationDate ? `Books on ${format(parseISO(st.registrationDate), "MMM d, yyyy")}` : "No sign-up date set"}
+                        <span className="ml-3">⏰ {st.checkWindowStart} – {st.checkWindowEnd} PT</span>
+                      </div>
+                    </div>
+                  </div>
+                  <StatusPill status={st.schedulerState} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+              <span className="text-4xl">🤷</span>
+              <p className="font-bold">No activities to watch yet!</p>
+              <p className="text-sm">Add some activities in the Activities page.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
