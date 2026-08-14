@@ -39,6 +39,11 @@ const cache = new Map<string, { at: number; classes: UpcomingClass[] }>();
 
 const MAX_PER_KEYWORD = 4;
 
+const ALLOWED_SITES = [
+  "edmonds community centre",
+  "rosemary brown community centre",
+];
+
 async function searchKeyword(keyword: string): Promise<UpcomingClass[]> {
   const cached = cache.get(keyword);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.classes;
@@ -71,6 +76,8 @@ async function searchKeyword(keyword: string): Promise<UpcomingClass[]> {
     // ("Preschool 4: Sea Lion" for keyword "Preschool 4"), still running or upcoming.
     .filter((i) => (i.name ?? "").toLowerCase().startsWith(kw))
     .filter((i) => (i.date_range_end ?? "") >= today)
+    // Only show classes at the two centres Agastya attends
+    .filter((i) => ALLOWED_SITES.some((s) => (i.site ?? "").toLowerCase().includes(s)))
     // Skip full classes — no point suggesting something he can't get into
     .filter((i) => (i.urgent_message?.status_description ?? "") !== "Full")
     .sort((a, b) => (a.date_range_start ?? "").localeCompare(b.date_range_start ?? ""))

@@ -249,7 +249,7 @@ export function Dashboard() {
       <header>
         <div className="flex items-center gap-3 mb-1">
           <span className="text-4xl">👋</span>
-          <h1 className="text-3xl font-extrabold tracking-tight">Adventure HQ</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Activities Center</h1>
         </div>
         <p className="text-muted-foreground font-medium">
           Your activity robot is on the lookout! Here's what's happening:
