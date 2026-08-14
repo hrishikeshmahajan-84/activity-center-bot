@@ -78,9 +78,77 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ── Agastya's current enrollments — hero banner ── */}
+      <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 overflow-hidden">
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-2xl">🏅</span>
+              <h2 className="text-lg font-extrabold text-emerald-900">Agastya Mahajan's Activities</h2>
+            </div>
+            <p className="text-xs font-semibold text-emerald-700 ml-9">
+              {regLoading
+                ? "Loading live data…"
+                : registrationsRes?.source === "live"
+                  ? `Live · refreshed ${format(parseISO(registrationsRes.scrapedAt), "h:mm a")}`
+                  : registrationsRes?.source === "stub"
+                    ? "Demo data — connect credentials to see live"
+                    : "Could not load"}
+            </p>
+          </div>
+          <button
+            onClick={handleScrape}
+            disabled={triggerScrape.isPending}
+            title="Refresh"
+            className="w-9 h-9 rounded-2xl bg-emerald-100 hover:bg-emerald-200 border border-emerald-200 flex items-center justify-center transition-colors shrink-0"
+          >
+            <RefreshCw className={cn("w-4 h-4 text-emerald-700", triggerScrape.isPending && "animate-spin")} />
+          </button>
+        </div>
+
+        <div className="px-5 pb-5">
+          {regLoading ? (
+            <div className="text-sm text-emerald-700 font-medium py-4 text-center">Loading… 🔄</div>
+          ) : registrationsRes?.registrations && registrationsRes.registrations.length > 0 ? (
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+              {registrationsRes.registrations.map((reg, idx) => (
+                <div
+                  key={idx}
+                  className="flex-shrink-0 bg-white rounded-2xl border border-emerald-200 shadow-sm p-4 w-52"
+                >
+                  <div className="text-3xl mb-2">{activityEmoji(reg.name)}</div>
+                  <div className="font-extrabold text-sm text-foreground leading-tight">{reg.name}</div>
+                  {reg.level && (
+                    <div className="text-xs font-bold text-emerald-600 mt-0.5">{reg.level}</div>
+                  )}
+                  <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground font-medium">
+                    {reg.dates && <div>📅 {reg.dates}</div>}
+                    {reg.times && <div>🕐 {reg.times}</div>}
+                    {reg.location && <div>📍 {reg.location}</div>}
+                  </div>
+                  <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    ✅ Enrolled
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : registrationsRes?.error ? (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              <span className="text-2xl block mb-1">🤔</span>
+              Couldn't load right now — try refreshing
+            </div>
+          ) : (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              <span className="text-2xl block mb-1">📭</span>
+              No enrolled activities found yet
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ── Header ── */}
-      <header className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
+      <header>
+        <div className="flex items-center gap-3 mb-1">
           <span className="text-4xl">👋</span>
           <h1 className="text-3xl font-extrabold tracking-tight">Adventure HQ</h1>
         </div>
