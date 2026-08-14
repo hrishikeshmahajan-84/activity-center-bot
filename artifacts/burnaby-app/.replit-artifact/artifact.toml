@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Burnaby Activities"
+description = "A personal dashboard for managing activity registrations on the Burnaby Active Communities website. Shows current registrations, lets the parent configure target activities (Orca swimming, Gliders 2 skating), tracks auto-booking history, and displays the scheduler status."
+version = "1.0.0"
+id = "artifacts/burnaby-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18593
+
+[services.development]
+run = "pnpm --filter @workspace/burnaby-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/burnaby-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/burnaby-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18593"
+BASE_PATH = "/"

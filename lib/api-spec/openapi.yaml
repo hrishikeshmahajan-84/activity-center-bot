@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Burnaby Activities registration automation API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: targets
+    description: Activity targets to monitor and auto-book
+  - name: bookings
+    description: Booking log and history
+  - name: registrations
+    description: Live registrations from Burnaby site
+  - name: scheduler
+    description: Scheduler status and controls
 paths:
   /healthz:
     get:
@@ -24,6 +32,181 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /targets:
+    get:
+      operationId: listTargets
+      tags: [targets]
+      summary: List all activity targets
+      responses:
+        "200":
+          description: List of targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityTarget"
+    post:
+      operationId: createTarget
+      tags: [targets]
+      summary: Create a new activity target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityTargetInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityTarget"
+        "400":
+          description: Invalid input
+
+  /targets/{id}:
+    get:
+      operationId: getTarget
+      tags: [targets]
+      summary: Get a single activity target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Target found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityTarget"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTarget
+      tags: [targets]
+      summary: Update an activity target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityTargetUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityTarget"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTarget
+      tags: [targets]
+      summary: Delete an activity target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List booking log entries
+      parameters:
+        - name: targetId
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 50
+      responses:
+        "200":
+          description: List of booking log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingLogEntry"
+
+  /registrations/current:
+    get:
+      operationId: getCurrentRegistrations
+      tags: [registrations]
+      summary: Get currently registered activities (live scrape or cached)
+      responses:
+        "200":
+          description: Current registrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentRegistrationsResult"
+
+  /registrations/scrape:
+    post:
+      operationId: triggerScrape
+      tags: [registrations]
+      summary: Trigger a fresh scrape of current registrations from Burnaby site
+      responses:
+        "200":
+          description: Scrape result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentRegistrationsResult"
+
+  /scheduler/status:
+    get:
+      operationId: getSchedulerStatus
+      tags: [scheduler]
+      summary: Get scheduler status and next scheduled checks
+      responses:
+        "200":
+          description: Scheduler status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchedulerStatus"
+
+  /scheduler/trigger:
+    post:
+      operationId: triggerScheduler
+      tags: [scheduler]
+      summary: Manually trigger a check-and-book cycle for all active targets
+      responses:
+        "200":
+          description: Trigger result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchedulerTriggerResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +217,214 @@ components:
       required:
         - status
 
+    ActivityTarget:
+      type: object
+      required:
+        - id
+        - activityName
+        - level
+        - status
+        - createdAt
+      properties:
+        id:
+          type: number
+        activityName:
+          type: string
+          description: e.g. "Swimming" or "Ice Skating"
+        level:
+          type: string
+          description: e.g. "Orca" or "Gliders 2"
+        registrationDate:
+          type: ["string", "null"]
+          description: "Date registration opens (YYYY-MM-DD)"
+        checkWindowStart:
+          type: ["string", "null"]
+          description: "Time to start checking (HH:MM in America/Vancouver)"
+        checkWindowEnd:
+          type: ["string", "null"]
+          description: "Time to stop checking (HH:MM in America/Vancouver)"
+        notes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, booked, cancelled]
+          description: "active = watching, booked = successfully registered, cancelled = stopped"
+        lastCheckedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ActivityTargetInput:
+      type: object
+      required:
+        - activityName
+        - level
+      properties:
+        activityName:
+          type: string
+          minLength: 1
+        level:
+          type: string
+          minLength: 1
+        registrationDate:
+          type: string
+          description: "YYYY-MM-DD"
+        checkWindowStart:
+          type: string
+          description: "HH:MM in America/Vancouver, default 09:00"
+        checkWindowEnd:
+          type: string
+          description: "HH:MM in America/Vancouver, default 11:00"
+        notes:
+          type: string
+
+    ActivityTargetUpdate:
+      type: object
+      properties:
+        activityName:
+          type: string
+          minLength: 1
+        level:
+          type: string
+          minLength: 1
+        registrationDate:
+          type: ["string", "null"]
+        checkWindowStart:
+          type: ["string", "null"]
+        checkWindowEnd:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, booked, cancelled]
+
+    BookingLogEntry:
+      type: object
+      required:
+        - id
+        - outcome
+        - attemptedAt
+      properties:
+        id:
+          type: number
+        targetId:
+          type: ["number", "null"]
+        activityName:
+          type: string
+        level:
+          type: string
+        outcome:
+          type: string
+          enum: [success, failed, no_spot, scraper_error, window_closed]
+        confirmationNumber:
+          type: ["string", "null"]
+        classDate:
+          type: ["string", "null"]
+        classTime:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        attemptedAt:
+          type: string
+          format: date-time
+
+    RegisteredActivity:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        level:
+          type: ["string", "null"]
+        dates:
+          type: ["string", "null"]
+        times:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+
+    CurrentRegistrationsResult:
+      type: object
+      required:
+        - registrations
+        - scrapedAt
+        - source
+      properties:
+        registrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegisteredActivity"
+        scrapedAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [live, cached, stub]
+        error:
+          type: ["string", "null"]
+
+    SchedulerTargetStatus:
+      type: object
+      required:
+        - targetId
+        - activityName
+        - level
+        - schedulerState
+      properties:
+        targetId:
+          type: number
+        activityName:
+          type: string
+        level:
+          type: string
+        registrationDate:
+          type: ["string", "null"]
+        checkWindowStart:
+          type: ["string", "null"]
+        checkWindowEnd:
+          type: ["string", "null"]
+        schedulerState:
+          type: string
+          enum: [waiting, active_window, booked, cancelled]
+        nextCheckAt:
+          type: ["string", "null"]
+          format: date-time
+        lastCheckedAt:
+          type: ["string", "null"]
+          format: date-time
+
+    SchedulerStatus:
+      type: object
+      required:
+        - isRunning
+        - targets
+        - checkedAt
+      properties:
+        isRunning:
+          type: boolean
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchedulerTargetStatus"
+        checkedAt:
+          type: string
+          format: date-time
+
+    SchedulerTriggerResult:
+      type: object
+      required:
+        - triggered
+        - message
+      properties:
+        triggered:
+          type: boolean
+        message:
+          type: string
+        targetsChecked:
+          type: number
