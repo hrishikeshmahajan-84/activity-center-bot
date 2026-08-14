@@ -193,6 +193,32 @@ export const TriggerScrapeResponse = zod.object({
 
 
 /**
+ * @summary Search the public Burnaby catalog for upcoming classes matching level keywords
+ */
+export const GetUpcomingClassesQueryParams = zod.object({
+  "keywords": zod.coerce.string().describe('Comma-separated level keywords, e.g. \"Preschool 3,Preschool 4\"')
+})
+
+export const GetUpcomingClassesResponse = zod.object({
+  "classes": zod.array(zod.object({
+  "keyword": zod.string().describe('The search keyword this class matched (e.g. \"Preschool 4\")'),
+  "name": zod.string(),
+  "courseNumber": zod.string().nullish(),
+  "dateStart": zod.string().nullish().describe('YYYY-MM-DD'),
+  "dateEnd": zod.string().nullish().describe('YYYY-MM-DD'),
+  "daysOfWeek": zod.string().nullish(),
+  "times": zod.string().nullish(),
+  "site": zod.string().nullish(),
+  "openings": zod.number().nullish(),
+  "status": zod.string().nullish().describe('e.g. \"Full\" or null when open'),
+  "registrationDate": zod.string().nullish().describe('Online registration start when the site publishes one')
+})),
+  "fetchedAt": zod.coerce.date(),
+  "error": zod.string().nullish()
+})
+
+
+/**
  * @summary Check scraper configuration status (credentials present)
  */
 export const GetScraperStatusResponse = zod.object({

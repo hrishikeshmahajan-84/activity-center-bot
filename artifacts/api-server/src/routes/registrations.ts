@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
 import {
   GetCurrentRegistrationsResponse,
+  GetUpcomingClassesResponse,
   TriggerScrapeResponse,
 } from "@workspace/api-zod";
 import { readCurrentRegistrations } from "../lib/scraper";
+import { getUpcomingClasses } from "../lib/upcoming";
 import { credentialsConfigured } from "../lib/scraper/session";
 import { requireApiKey } from "../middleware/apiKey";
 
@@ -70,6 +72,23 @@ router.post("/registrations/scrape", async (_req, res): Promise<void> => {
   cacheExpiresAt = Date.now() + CACHE_TTL_MS;
 
   res.json(TriggerScrapeResponse.parse(result));
+});
+
+// GET /registrations/upcoming?keywords=Preschool 3,Preschool 4
+// Public-catalog search for upcoming classes at the given level keywords.
+router.get("/registrations/upcoming", async (req, res): Promise<void> => {
+  const raw = typeof req.query.keywords === "string" ? req.query.keywords : "";
+  const keywords = raw
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .slice(0, 8); // sanity cap
+  if (keywords.length === 0) {
+    res.status(400).json({ error: "keywords query parameter is required" });
+    return;
+  }
+  const result = await getUpcomingClasses(keywords);
+  res.json(GetUpcomingClassesResponse.parse(result));
 });
 
 export default router;

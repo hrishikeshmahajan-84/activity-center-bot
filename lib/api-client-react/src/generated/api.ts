@@ -27,11 +27,13 @@ import type {
   BookingLogEntry,
   CheckAndBookInput,
   CurrentRegistrationsResult,
+  GetUpcomingClassesParams,
   HealthStatus,
   ListBookingsParams,
   SchedulerStatus,
   SchedulerTriggerResult,
-  ScraperStatus
+  ScraperStatus,
+  UpcomingClassesResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -738,6 +740,90 @@ export const useTriggerScrape = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getTriggerScrapeMutationOptions(options));
     }
+
+export const getGetUpcomingClassesUrl = (params: GetUpcomingClassesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/registrations/upcoming?${stringifiedParams}` : `/api/registrations/upcoming`
+}
+
+/**
+ * @summary Search the public Burnaby catalog for upcoming classes matching level keywords
+ */
+export const getUpcomingClasses = async (params: GetUpcomingClassesParams, options?: Parameters<typeof customFetch>[1]): Promise<UpcomingClassesResult> => {
+
+  return customFetch<UpcomingClassesResult>(getGetUpcomingClassesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUpcomingClassesQueryKey = (params?: GetUpcomingClassesParams,) => {
+    return [
+    `/api/registrations/upcoming`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetUpcomingClassesQueryOptions = <TData = Awaited<ReturnType<typeof getUpcomingClasses>>, TError = ErrorType<unknown>>(params: GetUpcomingClassesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingClasses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUpcomingClassesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUpcomingClasses>>> = ({ signal }) => getUpcomingClasses(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUpcomingClasses>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUpcomingClassesQueryResult = NonNullable<Awaited<ReturnType<typeof getUpcomingClasses>>>
+export type GetUpcomingClassesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search the public Burnaby catalog for upcoming classes matching level keywords
+ */
+
+export function useGetUpcomingClasses<TData = Awaited<ReturnType<typeof getUpcomingClasses>>, TError = ErrorType<unknown>>(
+ params: GetUpcomingClassesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUpcomingClasses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUpcomingClassesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetScraperStatusUrl = () => {
 

@@ -181,6 +181,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/CurrentRegistrationsResult"
 
+  /registrations/upcoming:
+    get:
+      operationId: getUpcomingClasses
+      tags: [registrations]
+      summary: Search the public Burnaby catalog for upcoming classes matching level keywords
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          description: Comma-separated level keywords, e.g. "Preschool 3,Preschool 4"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Upcoming classes grouped by keyword
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingClassesResult"
+
   /scrape/status:
     get:
       operationId: getScraperStatus
@@ -420,6 +440,56 @@ components:
         source:
           type: string
           enum: [live, cached, stub]
+        error:
+          type: ["string", "null"]
+
+    UpcomingClass:
+      type: object
+      required:
+        - keyword
+        - name
+      properties:
+        keyword:
+          type: string
+          description: The search keyword this class matched (e.g. "Preschool 4")
+        name:
+          type: string
+        courseNumber:
+          type: ["string", "null"]
+        dateStart:
+          type: ["string", "null"]
+          description: "YYYY-MM-DD"
+        dateEnd:
+          type: ["string", "null"]
+          description: "YYYY-MM-DD"
+        daysOfWeek:
+          type: ["string", "null"]
+        times:
+          type: ["string", "null"]
+        site:
+          type: ["string", "null"]
+        openings:
+          type: ["number", "null"]
+        status:
+          type: ["string", "null"]
+          description: e.g. "Full" or null when open
+        registrationDate:
+          type: ["string", "null"]
+          description: Online registration start when the site publishes one
+
+    UpcomingClassesResult:
+      type: object
+      required:
+        - classes
+        - fetchedAt
+      properties:
+        classes:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpcomingClass"
+        fetchedAt:
+          type: string
+          format: date-time
         error:
           type: ["string", "null"]
 

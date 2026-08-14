@@ -150,6 +150,49 @@ export interface CurrentRegistrationsResult {
   error?: string | null;
 }
 
+export interface UpcomingClass {
+  /** The search keyword this class matched (e.g. "Preschool 4") */
+  keyword: string;
+  name: string;
+  /** @nullable */
+  courseNumber?: string | null;
+  /**
+     * YYYY-MM-DD
+     * @nullable
+     */
+  dateStart?: string | null;
+  /**
+     * YYYY-MM-DD
+     * @nullable
+     */
+  dateEnd?: string | null;
+  /** @nullable */
+  daysOfWeek?: string | null;
+  /** @nullable */
+  times?: string | null;
+  /** @nullable */
+  site?: string | null;
+  /** @nullable */
+  openings?: number | null;
+  /**
+     * e.g. "Full" or null when open
+     * @nullable
+     */
+  status?: string | null;
+  /**
+     * Online registration start when the site publishes one
+     * @nullable
+     */
+  registrationDate?: string | null;
+}
+
+export interface UpcomingClassesResult {
+  classes: UpcomingClass[];
+  fetchedAt: string;
+  /** @nullable */
+  error?: string | null;
+}
+
 export type SchedulerTargetStatusSchedulerState = typeof SchedulerTargetStatusSchedulerState[keyof typeof SchedulerTargetStatusSchedulerState];
 
 
@@ -259,5 +302,12 @@ export interface SchedulerTriggerResult {
 export type ListBookingsParams = {
 targetId?: number;
 limit?: number;
+};
+
+export type GetUpcomingClassesParams = {
+/**
+ * Comma-separated level keywords, e.g. "Preschool 3,Preschool 4"
+ */
+keywords: string;
 };
 

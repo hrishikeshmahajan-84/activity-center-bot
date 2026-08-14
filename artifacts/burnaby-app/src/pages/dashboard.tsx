@@ -1,4 +1,4 @@
-import { useListTargets, useListBookings, useGetCurrentRegistrations, useGetSchedulerStatus, useTriggerScrape, useTriggerScheduler, getGetCurrentRegistrationsQueryKey, getGetSchedulerStatusQueryKey } from "@workspace/api-client-react";
+import { useListTargets, useGetCurrentRegistrations, useGetSchedulerStatus, useGetUpcomingClasses, getGetUpcomingClassesQueryKey, useTriggerScrape, useTriggerScheduler, getGetCurrentRegistrationsQueryKey, getGetSchedulerStatusQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Play } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
@@ -53,9 +53,13 @@ const PROGRESSIONS: { pattern: RegExp; prefix: string; max: number }[] = [
   { pattern: /gliders?\s*(\d)/i, prefix: "Gliders", max: 5 },
 ];
 
-type FutureActivity = { program: string; next: string; after: string };
+type FutureActivity = { program: string; current: string; next: string };
 
-/** Derive the next possible level for each program found in current activity names */
+/**
+ * Derive, for each program found in the activity names, the current level
+ * (he can still enroll in more classes at this level) and the next level
+ * (locked until he clears the current one).
+ */
 function futureActivities(names: string[]): FutureActivity[] {
   const best = new Map<string, number>();
   for (const name of names) {
@@ -72,8 +76,8 @@ function futureActivities(names: string[]): FutureActivity[] {
   }
   return [...best.entries()].map(([prefix, n]) => ({
     program: prefix,
+    current: `${prefix} ${n}`,
     next: `${prefix} ${n + 1}`,
-    after: `${prefix} ${n}`,
   }));
 }
 
@@ -85,8 +89,7 @@ function daysUntil(dateStr: string | null | undefined): number | null {
 
 export function Dashboard() {
   const queryClient = useQueryClient();
-  const { data: targets, isLoading: targetsLoading } = useListTargets();
-  const { data: bookings, isLoading: bookingsLoading } = useListBookings({ limit: 5 });
+  const { data: targets } = useListTargets();
   const { data: registrationsRes, isLoading: regLoading } = useGetCurrentRegistrations();
   const { data: scheduler, isLoading: schedulerLoading } = useGetSchedulerStatus();
 
@@ -121,6 +124,20 @@ export function Dashboard() {
     ...(registrationsRes?.registrations?.map(r => `${r.name} ${r.level ?? ""}`) ?? []),
     ...activeTargets.map(t => `${t.activityName} ${t.level ?? ""}`),
   ]);
+
+  // Search the public catalog for upcoming classes at both the current level
+  // (he can keep enrolling there) and the next level (locked until he clears
+  // the current one).
+  const keywords = upNext.flatMap(f => [f.current, f.next]);
+  const upcomingParams = { keywords: keywords.join(",") };
+  const { data: upcomingRes, isLoading: upcomingLoading } = useGetUpcomingClasses(
+    upcomingParams,
+    { query: { queryKey: getGetUpcomingClassesQueryKey(upcomingParams), enabled: keywords.length > 0, staleTime: 30 * 60_000 } }
+  );
+
+  const nextLevels = new Set(upNext.map(f => f.next));
+  const currentOf = new Map(upNext.map(f => [f.next, f.current]));
+  const upcomingClasses = upcomingRes?.classes ?? [];
 
   return (
     <div className="space-y-6">
@@ -273,7 +290,7 @@ export function Dashboard() {
                   🤖
                 </div>
                 <div>
-                  <h2 className="font-extrabold text-base">My Robot Helper</h2>
+                  <h2 className="font-extrabold text-base">My Robot Helper — booking these next</h2>
                   <div className="text-xs font-bold flex items-center gap-1.5 mt-0.5">
                     {scheduler?.isRunning ? (
                       <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -313,10 +330,8 @@ export function Dashboard() {
                             <span className="text-muted-foreground font-medium ml-2 text-xs">{st.level}</span>
                           </div>
                           <div className="text-xs text-muted-foreground font-medium mt-0.5">
-                            ⏰ {st.checkWindowStart} – {st.checkWindowEnd} PT
-                            {st.nextCheckAt && (
-                              <span className="ml-3">📅 {format(parseISO(st.nextCheckAt), "MMM d")}</span>
-                            )}
+                            📆 {st.registrationDate ? `Books on ${format(parseISO(st.registrationDate), "MMM d, yyyy")}` : "No sign-up date set"}
+                            <span className="ml-3">⏰ {st.checkWindowStart} – {st.checkWindowEnd} PT</span>
                           </div>
                         </div>
                       </div>
@@ -334,41 +349,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Watching Targets */}
-          {activeTargets.length > 0 && (
-            <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
-              <div className="p-5 border-b border-card-border bg-orange-50">
-                <h2 className="font-extrabold text-base flex items-center gap-2">
-                  👀 Activities We're Watching
-                </h2>
-              </div>
-              {targetsLoading ? (
-                <div className="p-6 text-center text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : (
-                <div className="divide-y divide-card-border">
-                  {activeTargets.map(t => (
-                    <div key={t.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{activityEmoji(t.activityName)}</span>
-                        <div>
-                          <div className="font-bold">{t.activityName}</div>
-                          <div className="text-sm text-muted-foreground font-medium">{t.level}</div>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs font-bold text-foreground">
-                          {t.registrationDate ? format(parseISO(t.registrationDate), "MMM d, yyyy") : "Date TBD"}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-medium mt-0.5">
-                          {t.lastCheckedAt ? `Checked ${format(parseISO(t.lastCheckedAt), "h:mm a")}` : "Not checked yet"}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ── Right: Enrollments + Recent Log ── */}
@@ -385,68 +365,69 @@ export function Dashboard() {
             </div>
 
             <div>
-              {regLoading ? (
+              {regLoading || upcomingLoading ? (
                 <div className="p-6 text-center text-sm text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : upNext.length > 0 ? (
+              ) : upcomingClasses.length > 0 ? (
                 <div className="divide-y divide-card-border">
-                  {upNext.map(f => (
-                    <div key={f.program} className="px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors">
-                      <span className="text-xl">{activityEmoji(f.program)}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold text-sm text-foreground">{f.next}</span>
-                        <span className="ml-2 text-[11px] text-muted-foreground font-medium">
-                          🔒 after he passes {f.after}
-                        </span>
+                  {upcomingClasses.map((c, idx) => {
+                    const isNextLevel = nextLevels.has(c.keyword);
+                    return (
+                      <div key={idx} className="px-4 py-3 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+                        <span className="text-xl mt-0.5">{activityEmoji(c.name)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-foreground">{c.name}</span>
+                            {c.courseNumber && (
+                              <span className="text-[10px] font-bold text-muted-foreground">#{c.courseNumber}</span>
+                            )}
+                            {isNextLevel ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                🔒 after {currentOf.get(c.keyword)}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                ✅ can enroll now
+                              </span>
+                            )}
+                            {c.status === "Full" && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">
+                                Full
+                              </span>
+                            )}
+                            {c.openings != null && c.openings > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                                {c.openings} spot{c.openings === 1 ? "" : "s"}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 text-[11px] text-muted-foreground font-medium space-y-0.5">
+                            <div>
+                              📆 Registration: {c.registrationDate ?? "open now"}
+                            </div>
+                            {(c.dateStart || c.dateEnd) && (
+                              <div>📅 {c.dateStart}{c.dateEnd && c.dateEnd !== c.dateStart ? ` – ${c.dateEnd}` : ""}</div>
+                            )}
+                            {(c.daysOfWeek || c.times) && (
+                              <div>🕐 {[c.daysOfWeek, c.times].filter(Boolean).join(" · ")}</div>
+                            )}
+                            {c.site && <div>📍 {c.site}</div>}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-6 text-center text-sm text-muted-foreground font-medium">
                   <span className="text-2xl block mb-2">🗺️</span>
-                  Nothing to suggest yet
+                  {upcomingRes?.error
+                    ? "Couldn't reach the Burnaby catalog — try again in a bit"
+                    : "No upcoming classes found in the catalog yet"}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Recent Attempts */}
-          <div className="bg-card rounded-3xl border-2 border-card-border overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-card-border bg-purple-50">
-              <h2 className="font-extrabold text-sm text-purple-800">🕐 Recent Attempts</h2>
-            </div>
-            <div>
-              {bookingsLoading ? (
-                <div className="p-6 text-center text-sm text-muted-foreground font-medium">Loading… 🔄</div>
-              ) : bookings && bookings.length > 0 ? (
-                <div className="divide-y divide-card-border">
-                  {bookings.map(log => (
-                    <div key={log.id} className="p-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex justify-between items-start mb-1.5">
-                        <StatusPill status={log.outcome} />
-                        <span className="text-[10px] text-muted-foreground font-medium">
-                          {format(parseISO(log.attemptedAt), "MMM d, h:mm a")}
-                        </span>
-                      </div>
-                      <div className="font-bold text-sm">
-                        {activityEmoji(log.activityName || "")} {log.activityName || "Unknown"}
-                      </div>
-                      {log.confirmationNumber && (
-                        <div className="mt-1.5 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg inline-block">
-                          ✅ Ref #{log.confirmationNumber}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 text-center text-sm text-muted-foreground font-medium">
-                  <span className="text-2xl block mb-2">📭</span>
-                  No attempts yet
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
