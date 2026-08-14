@@ -91,7 +91,7 @@ export function Dashboard() {
             const days = daysUntil(t.registrationDate);
             const emoji = activityEmoji(t.activityName);
             const colors = [
-              { bg: "bg-blue-50 border-blue-200",   accent: "bg-blue-500",   textAccent: "text-blue-700" },
+              { bg: "bg-blue-50 border-blue-200",     accent: "bg-blue-500",   textAccent: "text-blue-700" },
               { bg: "bg-orange-50 border-orange-200", accent: "bg-orange-400", textAccent: "text-orange-700" },
               { bg: "bg-purple-50 border-purple-200", accent: "bg-purple-500", textAccent: "text-purple-700" },
               { bg: "bg-emerald-50 border-emerald-200", accent: "bg-emerald-500", textAccent: "text-emerald-700" },
