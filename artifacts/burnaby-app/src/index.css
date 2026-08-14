@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -67,74 +67,77 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root, .dark {
-  /* Common variables for a dark-ish, cockpit vibe. */
-  --button-outline: rgba(255, 255, 255, 0.1);
-  --badge-outline: rgba(255, 255, 255, 0.05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255, 255, 255, 0.04);
-  --elevate-2: rgba(255, 255, 255, 0.09);
+:root {
+  /* Fun, bright kids palette */
+  --button-outline: rgba(0, 0, 0, 0.08);
+  --badge-outline: rgba(0, 0, 0, 0.06);
+  --opaque-button-border-intensity: -6;
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.06);
 
-  /* A deep aquatic/slate theme */
-  --background: 215 40% 6%;
-  --foreground: 210 20% 90%;
-  --border: 215 30% 15%;
-  
-  --card: 215 40% 8%;
-  --card-foreground: 210 20% 90%;
-  --card-border: 215 30% 14%;
-  
-  --sidebar: 215 40% 6%;
-  --sidebar-foreground: 210 20% 90%;
-  --sidebar-border: 215 30% 15%;
-  --sidebar-primary: 190 90% 45%;
-  --sidebar-primary-foreground: 215 40% 6%;
-  --sidebar-accent: 215 30% 15%;
-  --sidebar-accent-foreground: 210 20% 90%;
-  --sidebar-ring: 190 90% 45%;
-  
-  --popover: 215 40% 8%;
-  --popover-foreground: 210 20% 90%;
-  --popover-border: 215 30% 15%;
-  
-  --primary: 190 90% 45%;
-  --primary-foreground: 215 40% 6%;
-  
-  --secondary: 215 30% 15%;
-  --secondary-foreground: 210 20% 90%;
-  
-  --muted: 215 30% 12%;
-  --muted-foreground: 210 20% 60%;
-  
-  --accent: 215 30% 15%;
-  --accent-foreground: 210 20% 90%;
-  
-  --destructive: 0 80% 60%;
-  --destructive-foreground: 210 20% 90%;
-  
-  --input: 215 30% 15%;
-  --ring: 190 90% 45%;
-  
-  /* Pops of color for charts / targets */
-  --chart-1: 190 90% 45%;
-  --chart-2: 150 70% 45%;
-  --chart-3: 40 80% 60%;
-  --chart-4: 280 80% 60%;
-  --chart-5: 0 80% 60%;
+  /* Light & cheerful — sky blue tint background */
+  --background: 214 60% 97%;
+  --foreground: 222 45% 18%;
+  --border: 214 30% 87%;
 
-  --app-font-sans: 'Outfit', sans-serif;
+  --card: 0 0% 100%;
+  --card-foreground: 222 45% 18%;
+  --card-border: 214 25% 90%;
+
+  --sidebar: 260 45% 97%;
+  --sidebar-foreground: 222 45% 18%;
+  --sidebar-border: 260 25% 88%;
+  --sidebar-primary: 211 92% 52%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 260 40% 92%;
+  --sidebar-accent-foreground: 260 50% 35%;
+  --sidebar-ring: 211 92% 52%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 45% 18%;
+  --popover-border: 214 25% 88%;
+
+  /* Bright sky blue primary */
+  --primary: 211 92% 52%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Light lavender secondary */
+  --secondary: 260 55% 93%;
+  --secondary-foreground: 260 50% 35%;
+
+  --muted: 214 30% 93%;
+  --muted-foreground: 218 22% 50%;
+
+  /* Sunshine yellow accent */
+  --accent: 40 100% 93%;
+  --accent-foreground: 38 95% 30%;
+
+  --destructive: 0 82% 58%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 214 30% 88%;
+  --ring: 211 92% 52%;
+
+  /* Status chart colors */
+  --chart-1: 211 92% 52%;   /* blue  */
+  --chart-2: 145 65% 42%;   /* green */
+  --chart-3: 38 100% 52%;   /* amber */
+  --chart-4: 280 70% 58%;   /* purple */
+  --chart-5: 0 80% 60%;     /* red   */
+
+  --app-font-sans: 'Nunito', 'Outfit', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'Space Mono', monospace;
-  --radius: 0.5rem;
-  
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
-  --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
-  --shadow-sm: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 1px 2px -1px rgba(0,0,0,0.5);
-  --shadow: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 1px 2px -1px rgba(0,0,0,0.5);
-  --shadow-md: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 2px 4px -1px rgba(0,0,0,0.5);
-  --shadow-lg: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 4px 6px -1px rgba(0,0,0,0.5);
-  --shadow-xl: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 8px 10px -1px rgba(0,0,0,0.5);
-  --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0,0.5);
+  --radius: 0.875rem;
+
+  --shadow-2xs: 0px 1px 3px rgba(0, 60, 150, 0.08);
+  --shadow-xs:  0px 2px 4px rgba(0, 60, 150, 0.08);
+  --shadow-sm:  0px 2px 6px rgba(0, 60, 150, 0.10), 0px 1px 2px rgba(0, 60, 150, 0.06);
+  --shadow:     0px 3px 8px rgba(0, 60, 150, 0.10), 0px 1px 3px rgba(0, 60, 150, 0.06);
+  --shadow-md:  0px 4px 12px rgba(0, 60, 150, 0.12), 0px 2px 4px rgba(0, 60, 150, 0.06);
+  --shadow-lg:  0px 6px 20px rgba(0, 60, 150, 0.14), 0px 3px 6px rgba(0, 60, 150, 0.07);
+  --shadow-xl:  0px 10px 30px rgba(0, 60, 150, 0.16), 0px 4px 8px rgba(0, 60, 150, 0.08);
+  --shadow-2xl: 0px 16px 40px rgba(0, 60, 150, 0.18);
 
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -152,7 +155,12 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    color-scheme: dark;
+    color-scheme: light;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', 'Outfit', sans-serif;
+    font-weight: 800;
   }
 }
 
@@ -214,5 +222,14 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Fun bounce animation for icons */
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+  .wiggle:hover {
+    animation: wiggle 0.4s ease-in-out infinite;
   }
 }

@@ -1,72 +1,109 @@
-import { Shield, Key, MessageSquare, AlertCircle } from "lucide-react";
+import { useGetScraperStatus, useGetSchedulerStatus } from "@workspace/api-client-react";
+
+function ConfigRow({ label, envVar, configured = true }: { label: string; envVar: string; configured?: boolean }) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-background border-2 border-border rounded-2xl">
+      <div>
+        <div className="text-sm font-bold text-foreground">{label}</div>
+        <div className="text-xs text-muted-foreground font-medium mt-0.5">{envVar}</div>
+      </div>
+      {configured ? (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+          ✅ Ready
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+          ⚠️ Not set
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function Settings() {
+  const { data: scraperStatus } = useGetScraperStatus();
+  const { data: schedulerStatus } = useGetSchedulerStatus();
+
+  const hasCredentials = scraperStatus?.hasCredentials ?? false;
+  const hasSms = schedulerStatus?.smsConfigured ?? false;
+
   return (
     <div className="space-y-6 max-w-3xl">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Settings</h1>
-        <p className="text-muted-foreground">System configuration and credentials overview.</p>
+      <header className="mb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-3xl">⚙️</span>
+          <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
+        </div>
+        <p className="text-muted-foreground font-medium">
+          Check that all the robot's tools are ready to go!
+        </p>
       </header>
 
-      <div className="bg-card border border-card-border rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-card-border">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-semibold">Burnaby Active Communities</h2>
+      {/* Burnaby Login */}
+      <div className="bg-card border-2 border-card-border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-card-border bg-blue-50 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-blue-500 flex items-center justify-center text-2xl shadow-sm">
+            🔐
           </div>
-          <p className="text-sm text-muted-foreground ml-13">
-            The scraper uses these credentials to log in, read current enrollments, and execute bookings. 
-            These are securely loaded via environment variables on the backend.
-          </p>
+          <div>
+            <h2 className="font-extrabold text-base text-blue-900">Burnaby WebReg Login</h2>
+            <p className="text-xs text-blue-700 font-medium mt-0.5">
+              The robot uses these to log in and grab activity spots
+            </p>
+          </div>
         </div>
-        <div className="p-6 bg-muted/10 grid gap-4">
-          <div className="flex items-center justify-between p-4 bg-background border border-border rounded-lg">
-            <div className="flex items-center gap-3">
-              <Key className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Username</span>
-            </div>
-            <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-emerald-400">Configured via BURNABY_USERNAME</span>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-background border border-border rounded-lg">
-            <div className="flex items-center gap-3">
-              <Key className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Password</span>
-            </div>
-            <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-emerald-400">Configured via BURNABY_PASSWORD</span>
-          </div>
+        <div className="p-5 space-y-3">
+          <ConfigRow label="Username" envVar="BURNABY_USERNAME" configured={hasCredentials} />
+          <ConfigRow label="Password" envVar="BURNABY_PASSWORD" configured={hasCredentials} />
+          <ConfigRow label="Member ID" envVar="BURNABY_MEMBER_ID" configured={hasCredentials} />
         </div>
       </div>
 
-      <div className="bg-card border border-card-border rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-card-border">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-semibold">Twilio SMS Notifications</h2>
+      {/* SMS Notifications */}
+      <div className="bg-card border-2 border-card-border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-card-border bg-purple-50 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-purple-500 flex items-center justify-center text-2xl shadow-sm">
+            📱
           </div>
-          <p className="text-sm text-muted-foreground ml-13">
-            SMS alerts are sent immediately when a booking succeeds or if a fatal error occurs during the window.
-          </p>
+          <div>
+            <h2 className="font-extrabold text-base text-purple-900">Text Message Alerts</h2>
+            <p className="text-xs text-purple-700 font-medium mt-0.5">
+              The robot texts you the moment a spot is grabbed!
+            </p>
+          </div>
         </div>
-        <div className="p-6 bg-muted/10 grid gap-4">
-          <div className="flex items-center justify-between p-4 bg-background border border-border rounded-lg">
-            <div className="flex items-center gap-3">
-              <Key className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Account SID & Auth Token</span>
-            </div>
-            <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-emerald-400">Configured in ENV</span>
-          </div>
+        <div className="p-5 space-y-3">
+          <ConfigRow label="Twilio Account SID" envVar="TWILIO_ACCOUNT_SID" configured={hasSms} />
+          <ConfigRow label="Twilio Auth Token" envVar="TWILIO_AUTH_TOKEN" configured={hasSms} />
+          <ConfigRow label="From Phone Number" envVar="TWILIO_FROM_NUMBER" configured={hasSms} />
+          <ConfigRow label="Your Phone Number" envVar="NOTIFY_PHONE_NUMBER" configured={hasSms} />
         </div>
       </div>
-      
-      <div className="flex items-start gap-3 p-4 border border-blue-500/20 bg-blue-500/5 rounded-lg text-blue-400 text-sm">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-        <p>
-          <strong>Security Note:</strong> We do not store credentials in the database. 
-          To update your passwords, modify the environment variables directly on the deployment host and restart the service.
+
+      {/* API Access */}
+      <div className="bg-card border-2 border-card-border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-card-border bg-orange-50 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-orange-400 flex items-center justify-center text-2xl shadow-sm">
+            🔑
+          </div>
+          <div>
+            <h2 className="font-extrabold text-base text-orange-900">Robot API Key</h2>
+            <p className="text-xs text-orange-700 font-medium mt-0.5">
+              Protects the booking trigger from unauthorized use
+            </p>
+          </div>
+        </div>
+        <div className="p-5">
+          <ConfigRow label="API Key" envVar="BURNABY_API_KEY" />
+        </div>
+      </div>
+
+      {/* Security note */}
+      <div className="flex items-start gap-3 p-4 border-2 border-blue-200 bg-blue-50 rounded-2xl text-blue-700 text-sm">
+        <span className="text-xl shrink-0">🛡️</span>
+        <p className="font-medium">
+          <strong className="font-extrabold">Keeping you safe:</strong> We never store your passwords in our database.
+          All secrets live only in the server's environment — change them by updating the Replit secrets and restarting.
         </p>
       </div>
     </div>

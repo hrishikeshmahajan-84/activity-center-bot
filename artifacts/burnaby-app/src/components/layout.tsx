@@ -1,81 +1,106 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Target, CalendarDays, Settings, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const navItems = [
+  { href: "/",         emoji: "🏠", label: "Home",       color: "bg-blue-100 text-blue-700 border-blue-200" },
+  { href: "/targets",  emoji: "🎯", label: "Activities",  color: "bg-orange-100 text-orange-700 border-orange-200" },
+  { href: "/bookings", emoji: "📋", label: "History",     color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { href: "/settings", emoji: "⚙️", label: "Settings",    color: "bg-green-100 text-green-700 border-green-200" },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: Activity },
-    { href: "/targets", label: "Targets", icon: Target },
-    { href: "/bookings", label: "Bookings", icon: CalendarDays },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ];
-
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground selection:bg-primary/30">
-      <nav className="w-64 border-r border-border bg-card flex flex-col hidden md:flex shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Waves className="w-5 h-5 text-primary mr-3" />
-          <h1 className="font-semibold text-lg tracking-tight">Burnaby Ops</h1>
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground selection:bg-primary/20">
+      {/* ── Desktop Sidebar ── */}
+      <nav className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col hidden md:flex shrink-0">
+        {/* Logo */}
+        <div className="h-20 flex items-center px-5 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center text-2xl shadow-md">
+              🏅
+            </div>
+            <div>
+              <h1 className="font-extrabold text-lg leading-tight text-foreground">Activity HQ</h1>
+              <p className="text-[11px] text-muted-foreground font-medium">Burnaby Fun Finder</p>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+
+        {/* Nav items */}
+        <div className="flex-1 py-5 px-3 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-            const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href}>
                 <div
                   className={cn(
-                    "flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                    "flex items-center px-3 py-3 rounded-2xl text-sm font-bold transition-all cursor-pointer gap-3 border",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? `${item.color} shadow-sm scale-[1.02]`
+                      : "text-muted-foreground border-transparent hover:bg-muted/60 hover:text-foreground"
                   )}
                   data-testid={`nav-${item.label.toLowerCase()}`}
                 >
-                  <Icon className={cn("w-4 h-4 mr-3", isActive ? "text-primary" : "text-muted-foreground")} />
-                  {item.label}
+                  <span className="text-xl w-7 text-center">{item.emoji}</span>
+                  <span>{item.label}</span>
                 </div>
               </Link>
             );
           })}
         </div>
-        <div className="p-4 border-t border-border">
-          <div className="bg-muted/50 rounded-md p-3">
-            <div className="text-xs text-muted-foreground mb-1">System Status</div>
-            <div className="flex items-center text-xs font-mono text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-              Online
+
+        {/* Status footer */}
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center gap-2.5">
+            <span className="text-lg">🤖</span>
+            <div>
+              <div className="text-xs font-bold text-emerald-700">Robot is Watching!</div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-emerald-600 font-medium">All systems go</span>
+              </div>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile nav - simple bottom bar for small screens */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex items-center justify-around z-50">
+      {/* ── Mobile Bottom Nav ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-border flex items-center justify-around z-50 px-2 shadow-lg">
         {navItems.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-          const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href}>
-              <div className="flex flex-col items-center justify-center p-2 cursor-pointer">
-                <Icon className={cn("w-5 h-5 mb-1", isActive ? "text-primary" : "text-muted-foreground")} />
-                <span className={cn("text-[10px]", isActive ? "text-primary font-medium" : "text-muted-foreground")}>{item.label}</span>
+              <div className="flex flex-col items-center justify-center p-1.5 cursor-pointer">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all",
+                  isActive ? `${item.color} shadow-sm border` : ""
+                )}>
+                  {item.emoji}
+                </div>
+                <span className={cn(
+                  "text-[10px] mt-0.5 font-bold",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {item.label}
+                </span>
               </div>
             </Link>
           );
         })}
       </div>
 
+      {/* ── Main content ── */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Decorative noise/gradient behind content */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] mix-blend-screen" />
+        {/* Decorative bubbles */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary/6 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-purple-400/6 rounded-full blur-3xl" />
         </div>
-        
+
         <div className="flex-1 overflow-y-auto z-10 pb-16 md:pb-0">
-          <div className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+          <div className="p-5 md:p-8 max-w-7xl mx-auto w-full">
             {children}
           </div>
         </div>
