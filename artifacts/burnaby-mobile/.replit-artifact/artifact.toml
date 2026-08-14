@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/burnaby-mobile/"
+title = "Burnaby Mobile"
+description = "A mobile companion app for the Burnaby Activities booking system. Shows all active booking targets with their scheduler state (waiting, checking, or booked), lets you force a check cycle with one tap, and displays the full booking history per target — all backed by the existing API server."
+version = "1.0.0"
+id = "artifacts/burnaby-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/burnaby-mobile/" ]
+localPort = 20248
+
+[services.development]
+run = "pnpm --filter @workspace/burnaby-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/burnaby-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/burnaby-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "20248"
+BASE_PATH = "/burnaby-mobile/"
