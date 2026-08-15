@@ -90,8 +90,20 @@ function daysUntil(dateStr: string | null | undefined): number | null {
 export function Dashboard() {
   const queryClient = useQueryClient();
   const { data: targets } = useListTargets();
-  const { data: registrationsRes, isLoading: regLoading } = useGetCurrentRegistrations();
-  const { data: scheduler, isLoading: schedulerLoading } = useGetSchedulerStatus();
+  // Auto-retry on cold-start: if the server returns stub/unconfigured data,
+  // keep polling every 3 s until it comes back live (avoids manual refresh).
+  const { data: registrationsRes, isLoading: regLoading } = useGetCurrentRegistrations({
+    query: {
+      queryKey: getGetCurrentRegistrationsQueryKey(),
+      refetchInterval: (q) => (q.state.data?.source === "stub" ? 3000 : false),
+    },
+  });
+  const { data: scheduler, isLoading: schedulerLoading } = useGetSchedulerStatus({
+    query: {
+      queryKey: getGetSchedulerStatusQueryKey(),
+      refetchInterval: (q) => (!q.state.data?.isRunning ? 5000 : false),
+    },
+  });
 
   const triggerScrape = useTriggerScrape();
   const triggerScheduler = useTriggerScheduler();
