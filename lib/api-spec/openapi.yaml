@@ -317,6 +317,12 @@ components:
         checkWindowEnd:
           type: ["string", "null"]
           description: "Time to stop checking (HH:MM in America/Vancouver)"
+        classDay:
+          type: ["string", "null"]
+          description: "Day of week the class runs, e.g. 'Wednesday'. Used to pick the right session."
+        classTime:
+          type: ["string", "null"]
+          description: "Time the class runs, e.g. '6:00 PM'. Used to pick the right session."
         notes:
           type: ["string", "null"]
         status:
@@ -351,6 +357,12 @@ components:
         checkWindowEnd:
           type: string
           description: "HH:MM in America/Vancouver, default 10:10"
+        classDay:
+          type: string
+          description: "Day of week the class runs, e.g. 'Wednesday'"
+        classTime:
+          type: string
+          description: "Time the class runs, e.g. '6:00 PM'"
         notes:
           type: string
 
@@ -369,6 +381,12 @@ components:
           type: ["string", "null"]
         checkWindowEnd:
           type: ["string", "null"]
+        classDay:
+          type: ["string", "null"]
+          description: "Day of week the class runs, e.g. 'Wednesday'"
+        classTime:
+          type: ["string", "null"]
+          description: "Time the class runs, e.g. '6:00 PM'"
         notes:
           type: ["string", "null"]
         status:

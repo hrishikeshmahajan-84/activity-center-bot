@@ -42,6 +42,16 @@ export interface ActivityTarget {
      * @nullable
      */
   checkWindowEnd?: string | null;
+  /**
+     * Day of week the class runs, e.g. 'Wednesday'. Used to pick the right session.
+     * @nullable
+     */
+  classDay?: string | null;
+  /**
+     * Time the class runs, e.g. '6:00 PM'. Used to pick the right session.
+     * @nullable
+     */
+  classTime?: string | null;
   /** @nullable */
   notes?: string | null;
   /** active = watching, booked = successfully registered, cancelled = stopped */
@@ -58,10 +68,14 @@ export interface ActivityTargetInput {
   level: string;
   /** YYYY-MM-DD */
   registrationDate?: string;
-  /** HH:MM in America/Vancouver, default 09:00 */
+  /** HH:MM in America/Vancouver, default 09:50 */
   checkWindowStart?: string;
-  /** HH:MM in America/Vancouver, default 11:00 */
+  /** HH:MM in America/Vancouver, default 10:10 */
   checkWindowEnd?: string;
+  /** Day of week the class runs, e.g. 'Wednesday' */
+  classDay?: string;
+  /** Time the class runs, e.g. '6:00 PM' */
+  classTime?: string;
   notes?: string;
 }
 
@@ -85,6 +99,16 @@ export interface ActivityTargetUpdate {
   checkWindowStart?: string | null;
   /** @nullable */
   checkWindowEnd?: string | null;
+  /**
+     * Day of week the class runs, e.g. 'Wednesday'
+     * @nullable
+     */
+  classDay?: string | null;
+  /**
+     * Time the class runs, e.g. '6:00 PM'
+     * @nullable
+     */
+  classTime?: string | null;
   /** @nullable */
   notes?: string | null;
   status?: ActivityTargetUpdateStatus;

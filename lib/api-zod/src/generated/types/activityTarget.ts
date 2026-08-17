@@ -28,6 +28,16 @@ export interface ActivityTarget {
      * @nullable
      */
   checkWindowEnd?: string | null;
+  /**
+     * Day of week the class runs, e.g. 'Wednesday'. Used to pick the right session.
+     * @nullable
+     */
+  classDay?: string | null;
+  /**
+     * Time the class runs, e.g. '6:00 PM'. Used to pick the right session.
+     * @nullable
+     */
+  classTime?: string | null;
   /** @nullable */
   notes?: string | null;
   /** active = watching, booked = successfully registered, cancelled = stopped */

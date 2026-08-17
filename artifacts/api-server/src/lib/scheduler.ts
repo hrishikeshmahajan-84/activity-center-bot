@@ -247,6 +247,8 @@ async function tickTarget(
   const result = await findAndBook({
     activityName: target.activityName,
     level: target.level,
+    classDay: target.classDay ?? null,
+    classTime: target.classTime ?? null,
     dryRun: false,
   });
 

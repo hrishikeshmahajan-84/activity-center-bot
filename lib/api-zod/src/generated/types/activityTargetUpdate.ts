@@ -18,6 +18,16 @@ export interface ActivityTargetUpdate {
   checkWindowStart?: string | null;
   /** @nullable */
   checkWindowEnd?: string | null;
+  /**
+     * Day of week the class runs, e.g. 'Wednesday'
+     * @nullable
+     */
+  classDay?: string | null;
+  /**
+     * Time the class runs, e.g. '6:00 PM'
+     * @nullable
+     */
+  classTime?: string | null;
   /** @nullable */
   notes?: string | null;
   status?: ActivityTargetUpdateStatus;

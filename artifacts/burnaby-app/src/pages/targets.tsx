@@ -168,6 +168,8 @@ export function TargetForm() {
     registrationDate: "",
     checkWindowStart: "09:50",
     checkWindowEnd: "10:10",
+    classDay: "",
+    classTime: "",
     notes: "",
     status: "active" as ActivityTargetStatus,
   });
@@ -179,6 +181,8 @@ export function TargetForm() {
       registrationDate: existingTarget.registrationDate || "",
       checkWindowStart: existingTarget.checkWindowStart || "09:50",
       checkWindowEnd: existingTarget.checkWindowEnd || "10:10",
+      classDay: existingTarget.classDay || "",
+      classTime: existingTarget.classTime || "",
       notes: existingTarget.notes || "",
       status: existingTarget.status,
     });
@@ -192,6 +196,8 @@ export function TargetForm() {
       registrationDate: formData.registrationDate || undefined,
       checkWindowStart: formData.checkWindowStart || undefined,
       checkWindowEnd: formData.checkWindowEnd || undefined,
+      classDay: formData.classDay || undefined,
+      classTime: formData.classTime || undefined,
       notes: formData.notes || undefined,
       status: formData.status,
     };
@@ -288,6 +294,29 @@ export function TargetForm() {
             </select>
           </div>
         )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <label className="text-sm font-bold flex items-center gap-1.5">📆 Class Day <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <input
+              type="text" className={inputClass}
+              placeholder="e.g. Wednesday"
+              value={formData.classDay}
+              onChange={e => setFormData({ ...formData, classDay: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Day of week the class runs — helps the bot pick the right session</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold flex items-center gap-1.5">🕕 Class Time <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <input
+              type="text" className={inputClass}
+              placeholder="e.g. 6:00 PM"
+              value={formData.classTime}
+              onChange={e => setFormData({ ...formData, classTime: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Time the class starts — used with Class Day to identify the exact session</p>
+          </div>
+        </div>
 
         <div className="space-y-2">
           <label className="text-sm font-bold flex items-center gap-1.5">📝 Notes (Optional)</label>

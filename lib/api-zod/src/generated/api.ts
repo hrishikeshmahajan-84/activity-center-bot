@@ -27,6 +27,8 @@ export const ListTargetsResponseItem = zod.object({
   "registrationDate": zod.string().nullish().describe('Date registration opens (YYYY-MM-DD)'),
   "checkWindowStart": zod.string().nullish().describe('Time to start checking (HH:MM in America\/Vancouver)'),
   "checkWindowEnd": zod.string().nullish().describe('Time to stop checking (HH:MM in America\/Vancouver)'),
+  "classDay": zod.string().nullish().describe('Day of week the class runs, e.g. \'Wednesday\'. Used to pick the right session.'),
+  "classTime": zod.string().nullish().describe('Time the class runs, e.g. \'6:00 PM\'. Used to pick the right session.'),
   "notes": zod.string().nullish(),
   "status": zod.enum(['active', 'booked', 'cancelled']).describe('active = watching, booked = successfully registered, cancelled = stopped'),
   "lastCheckedAt": zod.coerce.date().nullish(),
@@ -46,8 +48,10 @@ export const CreateTargetBody = zod.object({
   "activityName": zod.string().min(1),
   "level": zod.string().min(1),
   "registrationDate": zod.string().optional().describe('YYYY-MM-DD'),
-  "checkWindowStart": zod.string().optional().describe('HH:MM in America\/Vancouver, default 09:00'),
-  "checkWindowEnd": zod.string().optional().describe('HH:MM in America\/Vancouver, default 11:00'),
+  "checkWindowStart": zod.string().optional().describe('HH:MM in America\/Vancouver, default 09:50'),
+  "checkWindowEnd": zod.string().optional().describe('HH:MM in America\/Vancouver, default 10:10'),
+  "classDay": zod.string().optional().describe('Day of week the class runs, e.g. \'Wednesday\''),
+  "classTime": zod.string().optional().describe('Time the class runs, e.g. \'6:00 PM\''),
   "notes": zod.string().optional()
 })
 
@@ -58,6 +62,8 @@ export const CreateTargetResponse = zod.object({
   "registrationDate": zod.string().nullish().describe('Date registration opens (YYYY-MM-DD)'),
   "checkWindowStart": zod.string().nullish().describe('Time to start checking (HH:MM in America\/Vancouver)'),
   "checkWindowEnd": zod.string().nullish().describe('Time to stop checking (HH:MM in America\/Vancouver)'),
+  "classDay": zod.string().nullish().describe('Day of week the class runs, e.g. \'Wednesday\'. Used to pick the right session.'),
+  "classTime": zod.string().nullish().describe('Time the class runs, e.g. \'6:00 PM\'. Used to pick the right session.'),
   "notes": zod.string().nullish(),
   "status": zod.enum(['active', 'booked', 'cancelled']).describe('active = watching, booked = successfully registered, cancelled = stopped'),
   "lastCheckedAt": zod.coerce.date().nullish(),
@@ -79,6 +85,8 @@ export const GetTargetResponse = zod.object({
   "registrationDate": zod.string().nullish().describe('Date registration opens (YYYY-MM-DD)'),
   "checkWindowStart": zod.string().nullish().describe('Time to start checking (HH:MM in America\/Vancouver)'),
   "checkWindowEnd": zod.string().nullish().describe('Time to stop checking (HH:MM in America\/Vancouver)'),
+  "classDay": zod.string().nullish().describe('Day of week the class runs, e.g. \'Wednesday\'. Used to pick the right session.'),
+  "classTime": zod.string().nullish().describe('Time the class runs, e.g. \'6:00 PM\'. Used to pick the right session.'),
   "notes": zod.string().nullish(),
   "status": zod.enum(['active', 'booked', 'cancelled']).describe('active = watching, booked = successfully registered, cancelled = stopped'),
   "lastCheckedAt": zod.coerce.date().nullish(),
@@ -103,6 +111,8 @@ export const UpdateTargetBody = zod.object({
   "registrationDate": zod.string().nullish(),
   "checkWindowStart": zod.string().nullish(),
   "checkWindowEnd": zod.string().nullish(),
+  "classDay": zod.string().nullish().describe('Day of week the class runs, e.g. \'Wednesday\''),
+  "classTime": zod.string().nullish().describe('Time the class runs, e.g. \'6:00 PM\''),
   "notes": zod.string().nullish(),
   "status": zod.enum(['active', 'booked', 'cancelled']).optional()
 })
@@ -114,6 +124,8 @@ export const UpdateTargetResponse = zod.object({
   "registrationDate": zod.string().nullish().describe('Date registration opens (YYYY-MM-DD)'),
   "checkWindowStart": zod.string().nullish().describe('Time to start checking (HH:MM in America\/Vancouver)'),
   "checkWindowEnd": zod.string().nullish().describe('Time to stop checking (HH:MM in America\/Vancouver)'),
+  "classDay": zod.string().nullish().describe('Day of week the class runs, e.g. \'Wednesday\'. Used to pick the right session.'),
+  "classTime": zod.string().nullish().describe('Time the class runs, e.g. \'6:00 PM\'. Used to pick the right session.'),
   "notes": zod.string().nullish(),
   "status": zod.enum(['active', 'booked', 'cancelled']).describe('active = watching, booked = successfully registered, cancelled = stopped'),
   "lastCheckedAt": zod.coerce.date().nullish(),

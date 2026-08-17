@@ -13,9 +13,13 @@ export interface ActivityTargetInput {
   level: string;
   /** YYYY-MM-DD */
   registrationDate?: string;
-  /** HH:MM in America/Vancouver, default 09:00 */
+  /** HH:MM in America/Vancouver, default 09:50 */
   checkWindowStart?: string;
-  /** HH:MM in America/Vancouver, default 11:00 */
+  /** HH:MM in America/Vancouver, default 10:10 */
   checkWindowEnd?: string;
+  /** Day of week the class runs, e.g. 'Wednesday' */
+  classDay?: string;
+  /** Time the class runs, e.g. '6:00 PM' */
+  classTime?: string;
   notes?: string;
 }

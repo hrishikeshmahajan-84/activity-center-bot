@@ -35,6 +35,10 @@ export interface FindAndBookResult {
 interface BookTarget {
   activityName: string; // e.g. "Swimming"
   level: string;        // e.g. "Orca"
+  /** Day of week the class runs, e.g. "Wednesday". Used to pick the right session. */
+  classDay?: string | null;
+  /** Time the class runs, e.g. "6:00 PM". Used to pick the right session. */
+  classTime?: string | null;
   dryRun: boolean;
 }
 
@@ -79,8 +83,13 @@ async function searchForActivity(page: Page, activityName: string, level: string
   return true;
 }
 
-/** Look through search results for a card/row matching the target level. */
-async function findMatchingActivity(page: Page, level: string): Promise<{ card: import("playwright").Locator; sessionDetails: { date: string | null; time: string | null } } | null> {
+/** Look through search results for a card/row matching the target level (and optionally day/time). */
+async function findMatchingActivity(
+  page: Page,
+  level: string,
+  classDay?: string | null,
+  classTime?: string | null,
+): Promise<{ card: import("playwright").Locator; sessionDetails: { date: string | null; time: string | null } } | null> {
   // Possible result containers on Active Network platform
   const resultSelectors = [
     ".activity-result",
@@ -92,25 +101,67 @@ async function findMatchingActivity(page: Page, level: string): Promise<{ card: 
     "[data-testid*='activity']",
   ];
 
+  const hasSessionHint = !!(classDay || classTime);
+
   for (const sel of resultSelectors) {
     const cards = await page.locator(sel).all();
     if (cards.length === 0) continue;
 
+    const levelLower = level.toLowerCase();
+    const dayLower = classDay?.toLowerCase() ?? null;
+    // Accept abbreviated day names: "Wednesday" matches "wed", "Wednesday", etc.
+    const dayAbbr = dayLower ? dayLower.slice(0, 3) : null;
+    const timeLower = classTime?.toLowerCase() ?? null;
+
+    // Collect all cards whose text contains the level, then score them.
+    type Candidate = { card: import("playwright").Locator; score: number; text: string };
+    const candidates: Candidate[] = [];
+
     for (const card of cards) {
-      const text = (await card.textContent().catch(() => "")) ?? "";
-      if (text.toLowerCase().includes(level.toLowerCase())) {
-        const dateText = await card.locator(".date, .dates, .date-range, .activity-date").first().textContent().catch(() => null);
-        const timeText = await card.locator(".time, .times, .activity-time").first().textContent().catch(() => null);
-        logger.info({ level, selector: sel }, "Found matching activity card");
-        return {
-          card,
-          sessionDetails: {
-            date: dateText?.trim() ?? null,
-            time: timeText?.trim() ?? null,
-          },
-        };
-      }
+      const text = ((await card.textContent().catch(() => "")) ?? "").toLowerCase();
+      if (!text.includes(levelLower)) continue;
+
+      let score = 0;
+      if (dayLower && (text.includes(dayLower) || (dayAbbr && text.includes(dayAbbr)))) score += 2;
+      if (timeLower && text.includes(timeLower)) score += 2;
+
+      candidates.push({ card, score, text });
     }
+
+    if (candidates.length === 0) continue;
+
+    // Sort by score descending — highest match wins.
+    candidates.sort((a, b) => b.score - a.score);
+
+    const best = candidates[0]!;
+
+    if (hasSessionHint && best.score === 0) {
+      // We have hints but nothing matched them — warn but still use the top card
+      // so the bot doesn't silently give up. The Telegram confirmation will show
+      // the actual class details so the user can catch a wrong pick.
+      logger.warn(
+        { level, classDay, classTime, selector: sel },
+        "Session hints (day/time) not found in any card text — booking top result; verify confirmation"
+      );
+    } else if (hasSessionHint) {
+      logger.info(
+        { level, classDay, classTime, score: best.score, selector: sel },
+        "Found best-matching activity card"
+      );
+    } else {
+      logger.info({ level, selector: sel }, "Found matching activity card (no session hint)");
+    }
+
+    const dateText = await best.card.locator(".date, .dates, .date-range, .activity-date").first().textContent().catch(() => null);
+    const timeText = await best.card.locator(".time, .times, .activity-time").first().textContent().catch(() => null);
+
+    return {
+      card: best.card,
+      sessionDetails: {
+        date: dateText?.trim() ?? null,
+        time: timeText?.trim() ?? null,
+      },
+    };
   }
 
   return null;
@@ -235,7 +286,7 @@ async function confirmPayment(page: Page, dryRun: boolean): Promise<string | nul
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 export async function findAndBook(target: BookTarget): Promise<FindAndBookResult> {
-  const { activityName, level, dryRun } = target;
+  const { activityName, level, classDay, classTime, dryRun } = target;
 
   if (!credentialsConfigured()) {
     return {
@@ -273,7 +324,7 @@ export async function findAndBook(target: BookTarget): Promise<FindAndBookResult
     await searchForActivity(page, activityName, level);
 
     // 2. Find a matching card in results
-    const match = await findMatchingActivity(page, level);
+    const match = await findMatchingActivity(page, level, classDay, classTime);
     if (!match) {
       return {
         outcome: "failed",

@@ -9,6 +9,16 @@ export const activityTargetsTable = pgTable("activity_targets", {
   registrationDate: date("registration_date", { mode: "string" }),
   checkWindowStart: text("check_window_start").default("09:00"),
   checkWindowEnd: text("check_window_end").default("11:00"),
+  /**
+   * Day of week the class runs, e.g. "Wednesday". Used by the scraper to pick
+   * the correct session when multiple sessions share the same level.
+   */
+  classDay: text("class_day"),
+  /**
+   * Time the class runs, e.g. "6:00 PM". Used alongside classDay to identify
+   * the exact session to book.
+   */
+  classTime: text("class_time"),
   notes: text("notes"),
   status: text("status").notNull().default("active"), // active | booked | cancelled
   lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
