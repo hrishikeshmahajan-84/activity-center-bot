@@ -10,8 +10,8 @@ export default function Slide01Title() {
         backgroundColor: "#FFFFFF",
         fontFamily: "'Inter', sans-serif",
         position: "relative",
-        backgroundImage:
-          "repeating-linear-gradient(to bottom, transparent 0, transparent calc(5vh - 1px), #F0F0F0 calc(5vh - 1px), #F0F0F0 5vh), repeating-linear-gradient(to right, transparent 0, transparent calc(5vw - 1px), #F0F0F0 calc(5vw - 1px), #F0F0F0 5vw)",
+        backgroundImage: "radial-gradient(circle, #E8E8E8 1px, transparent 1px)",
+        backgroundSize: "40px 40px",
       }}
     >
       {/* Top-left blue square */}
