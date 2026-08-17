@@ -12,7 +12,7 @@
  */
 
 import { logger } from "../logger";
-import { SITE_URL, getAuthenticatedPage, releaseBrowserLock, credentialsConfigured } from "./session";
+import { SITE_URL, MEMBER_ID, getAuthenticatedPage, releaseBrowserLock, credentialsConfigured } from "./session";
 import type { Page } from "playwright";
 
 export type BookingOutcome =
@@ -193,6 +193,115 @@ async function getRegisterButtonState(card: import("playwright").Locator): Promi
 }
 
 // ─── Checkout flow ───────────────────────────────────────────────────────────
+
+/**
+ * After clicking Register, Active Network often shows a family-member picker
+ * before adding to cart. This function detects that step and selects Agastya.
+ *
+ * Strategy (in priority order):
+ *   1. Any checkbox/radio whose associated label contains "Agastya"
+ *   2. Any element with a data attribute matching BURNABY_MEMBER_ID
+ *   3. Any label/row whose text contains "Agastya" – click to toggle
+ *
+ * If no participant picker appears within 4 seconds the site auto-selected
+ * the participant (or skipped the step) and we proceed normally.
+ *
+ * After selecting, looks for an "Add to Cart" / "Continue" / "Next" button
+ * on the picker modal/page and clicks it.
+ */
+async function selectParticipant(page: Page): Promise<void> {
+  // Give the page time to render the participant picker (if any)
+  await page.waitForTimeout(2_000);
+
+  // ── Detect whether a participant picker is visible ────────────────────────
+  // Active Network renders participant pickers as a modal overlay or an inline
+  // section.  We look for any of the known container selectors.
+  const pickerSelectors = [
+    ".participant-selection",
+    ".family-member-selection",
+    "[class*='participant' i]",
+    "[class*='family-member' i]",
+    "[data-testid*='participant' i]",
+    // Generic: a section with multiple checkboxes that appeared after the click
+    "form:has(input[type='checkbox'] + label), form:has(input[type='radio'] + label)",
+  ];
+
+  let pickerVisible = false;
+  for (const sel of pickerSelectors) {
+    if (await page.locator(sel).first().isVisible({ timeout: 1_000 }).catch(() => false)) {
+      pickerVisible = true;
+      logger.info({ selector: sel }, "Participant picker detected");
+      break;
+    }
+  }
+
+  if (!pickerVisible) {
+    // No picker – site auto-selected or skipped the step
+    logger.info("No participant picker detected – assuming auto-selection");
+    return;
+  }
+
+  // ── Try to select Agastya ─────────────────────────────────────────────────
+
+  // 1. Checkbox/radio whose label text contains "Agastya"
+  const byName = page.locator(
+    'label:has-text("Agastya"), input[type="checkbox"] + label:has-text("Agastya"), input[type="radio"] + label:has-text("Agastya")'
+  ).first();
+
+  if (await byName.isVisible().catch(() => false)) {
+    // If it's a label, click it to toggle the associated input
+    await byName.click();
+    logger.info("Selected participant via name label ('Agastya')");
+  } else {
+    // 2. Element with a data attribute matching the member ID
+    const memberId = MEMBER_ID;
+    const byId = page.locator(
+      `[data-customer-id="${memberId}"], [data-member-id="${memberId}"], [data-participant-id="${memberId}"], [value="${memberId}"]`
+    ).first();
+
+    if (await byId.isVisible().catch(() => false)) {
+      await byId.click();
+      logger.info({ memberId }, "Selected participant via member ID attribute");
+    } else {
+      // 3. Any row/cell containing "Agastya" – click it
+      const byText = page.locator('td:has-text("Agastya"), li:has-text("Agastya"), div:has-text("Agastya")').first();
+      if (await byText.isVisible().catch(() => false)) {
+        await byText.click();
+        logger.info("Selected participant via text row ('Agastya')");
+      } else {
+        // Could not find Agastya – log a warning and continue; the booking
+        // will likely fail at checkout but we'll capture that as scraper_error.
+        logger.warn(
+          { memberId },
+          "Participant picker visible but could not locate Agastya – proceeding without selection"
+        );
+        return;
+      }
+    }
+  }
+
+  await page.waitForTimeout(800);
+
+  // ── Click the "Add to Cart" / "Continue" / "Next" button on the picker ────
+  const pickerConfirmBtn = page.locator(
+    [
+      'button:has-text("Add to Cart")',
+      'button:has-text("Continue")',
+      'button:has-text("Next")',
+      'a:has-text("Add to Cart")',
+      'a:has-text("Continue")',
+      'input[type="submit"]',
+    ].join(", ")
+  ).first();
+
+  if (await pickerConfirmBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await pickerConfirmBtn.click();
+    await page.waitForTimeout(1_500);
+    logger.info("Clicked participant picker confirm button");
+  } else {
+    logger.warn("Could not find confirm button on participant picker – proceeding anyway");
+  }
+}
 
 async function clickRegisterButton(card: import("playwright").Locator, page: Page): Promise<void> {
   const registerBtn = card.locator(
@@ -376,6 +485,7 @@ export async function findAndBook(target: BookTarget): Promise<FindAndBookResult
     // 4. Registration is OPEN – proceed with booking
     logger.info({ activityName, level, dryRun }, "Registration open – starting checkout");
     await clickRegisterButton(match.card, page);
+    await selectParticipant(page); // pick Agastya if site shows a family-member step
     await proceedThroughCart(page);
     const confirmationNumber = await confirmPayment(page, dryRun);
 
