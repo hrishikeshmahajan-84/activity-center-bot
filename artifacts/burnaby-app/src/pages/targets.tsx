@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
-import { useListTargets, useCreateTarget, useUpdateTarget, useDeleteTarget, useGetTarget, getListTargetsQueryKey, ActivityTargetStatus } from "@workspace/api-client-react";
+import { useListTargets, useCreateTarget, useUpdateTarget, useDeleteTarget, useGetTarget, useDryRunCheckAndBook, getListTargetsQueryKey, ActivityTargetStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2, Loader2, ArrowLeft } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, ArrowLeft, FlaskConical, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,10 +35,60 @@ const CARD_ACCENTS = [
   { border: "border-pink-200", top: "bg-pink-400", icon: "bg-pink-50" },
 ];
 
+type DryRunResult = {
+  outcome: string;
+  message: string;
+  classDate?: string | null;
+  classTime?: string | null;
+};
+
+function DryRunResultBox({ result }: { result: DryRunResult }) {
+  const isOk = result.outcome === "success" || result.outcome === "registration_not_open";
+  const isError = result.outcome === "scraper_error" || result.outcome === "failed" || result.outcome === "not_configured";
+  return (
+    <div className={cn(
+      "mt-3 rounded-2xl border-2 p-3 text-sm",
+      isOk ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+      isError ? "bg-red-50 border-red-200 text-red-800" :
+      "bg-amber-50 border-amber-200 text-amber-800"
+    )}>
+      <div className="flex items-start gap-2">
+        {isOk ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> :
+         isError ? <XCircle className="w-4 h-4 mt-0.5 shrink-0" /> :
+         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+        <div className="space-y-1">
+          <p className="font-bold capitalize">{result.outcome.replace(/_/g, " ")}</p>
+          <p className="font-medium opacity-90">{result.message}</p>
+          {(result.classDate || result.classTime) && (
+            <p className="opacity-75 text-xs">{[result.classDate, result.classTime].filter(Boolean).join(" · ")}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TargetsList() {
   const { data: targets, isLoading } = useListTargets();
   const deleteTarget = useDeleteTarget();
+  const dryRun = useDryRunCheckAndBook();
   const queryClient = useQueryClient();
+  const [dryRunResults, setDryRunResults] = useState<Record<number, DryRunResult>>({});
+  const [dryRunning, setDryRunning] = useState<Record<number, boolean>>({});
+
+  const handleDryRun = async (id: number) => {
+    setDryRunning(prev => ({ ...prev, [id]: true }));
+    setDryRunResults(prev => { const n = { ...prev }; delete n[id]; return n; });
+    try {
+      const result = await dryRun.mutateAsync({ targetId: id });
+      setDryRunResults(prev => ({ ...prev, [id]: result }));
+      queryClient.invalidateQueries({ queryKey: getListTargetsQueryKey() });
+    } catch (e) {
+      setDryRunResults(prev => ({ ...prev, [id]: { outcome: "scraper_error", message: e instanceof Error ? e.message : "Unknown error" } }));
+    } finally {
+      setDryRunning(prev => ({ ...prev, [id]: false }));
+    }
+  };
 
   const handleDelete = (id: number) => {
     if (confirm("Remove this activity from the watch list?")) {
@@ -124,6 +174,14 @@ export function TargetsList() {
                       {t.lastCheckedAt ? `Last checked ${format(parseISO(t.lastCheckedAt), "h:mm a")}` : "Not checked yet"}
                     </div>
                     <div className="flex gap-1.5">
+                      <button
+                        onClick={() => handleDryRun(t.id)}
+                        title="Dry run — test the full booking flow without actually booking"
+                        className="w-8 h-8 rounded-xl bg-muted hover:bg-purple-100 hover:text-purple-600 flex items-center justify-center transition-colors"
+                        disabled={dryRunning[t.id]}
+                      >
+                        {dryRunning[t.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                      </button>
                       <Link href={`/targets/${t.id}/edit`}>
                         <button className="w-8 h-8 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -138,6 +196,7 @@ export function TargetsList() {
                       </button>
                     </div>
                   </div>
+                  {dryRunResults[t.id] && <DryRunResultBox result={dryRunResults[t.id]!} />}
                 </div>
               </div>
             );

@@ -7,7 +7,7 @@
  * development workspace, so this reconciliation runs once at server startup.
  * It is idempotent and a no-op when the data is already correct (as in dev).
  */
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db, activityTargetsTable, bookingLogTable } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -15,6 +15,17 @@ const JUNK_TARGET_NAMES = ["Test", "SmokeTest"];
 const GLIDERS2_REGISTRATION_DATE = "2026-08-15";
 
 export async function runStartupDataCleanup(): Promise<void> {
+  // 0. Idempotent schema migration — add new columns if missing (safe for prod).
+  try {
+    await db.execute(sql`
+      ALTER TABLE activity_targets
+        ADD COLUMN IF NOT EXISTS class_day  TEXT,
+        ADD COLUMN IF NOT EXISTS class_time TEXT
+    `);
+    logger.info("Startup cleanup: class_day/class_time columns ensured");
+  } catch (e) {
+    logger.warn({ err: e }, "Startup cleanup: could not apply schema migration (non-fatal)");
+  }
   // 1. Remove junk test targets (and their booking-log rows).
   const junk = await db
     .select({ id: activityTargetsTable.id, name: activityTargetsTable.activityName })

@@ -214,6 +214,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScraperStatus"
 
+  /scrape/dry-run/{targetId}:
+    post:
+      operationId: dryRunCheckAndBook
+      tags: [registrations]
+      summary: Dry-run the booking flow for a target (no API key needed, stops before final payment)
+      description: Runs the full checkout flow — login, find activity, participant selection, cart — but stops before the final confirm button. Safe to call anytime; nothing is booked.
+      parameters:
+        - name: targetId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Dry-run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingAttemptResult"
+        "404":
+          description: Target not found
+
   /scrape/check-and-book/{targetId}:
     post:
       operationId: checkAndBook

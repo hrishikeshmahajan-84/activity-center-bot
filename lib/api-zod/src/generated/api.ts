@@ -242,6 +242,25 @@ export const GetScraperStatusResponse = zod.object({
 
 
 /**
+ * Runs the full checkout flow — login, find activity, participant selection, cart — but stops before the final confirm button. Safe to call anytime; nothing is booked.
+ * @summary Dry-run the booking flow for a target (no API key needed, stops before final payment)
+ */
+export const DryRunCheckAndBookParams = zod.object({
+  "targetId": zod.coerce.number()
+})
+
+export const DryRunCheckAndBookResponse = zod.object({
+  "outcome": zod.enum(['success', 'failed', 'no_spot', 'scraper_error', 'registration_not_open', 'not_configured']),
+  "message": zod.string(),
+  "confirmationNumber": zod.string().nullish(),
+  "classDate": zod.string().nullish(),
+  "classTime": zod.string().nullish(),
+  "dryRun": zod.boolean(),
+  "logEntryId": zod.number().nullish()
+})
+
+
+/**
  * @summary Check if target activity registration is open and book if so
  */
 export const CheckAndBookParams = zod.object({

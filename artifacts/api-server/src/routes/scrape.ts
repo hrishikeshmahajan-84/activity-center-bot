@@ -74,6 +74,8 @@ router.post("/scrape/check-and-book/:targetId", requireApiKey, async (req, res):
   const result = await findAndBook({
     activityName: target.activityName,
     level: target.level,
+    classDay: target.classDay ?? null,
+    classTime: target.classTime ?? null,
     dryRun,
   });
 
@@ -133,6 +135,80 @@ router.post("/scrape/check-and-book/:targetId", requireApiKey, async (req, res):
       classTime: result.classTime ?? null,
       dryRun,
       logEntryId,
+    })
+  );
+});
+
+// POST /scrape/dry-run/:targetId — no API key required (always dryRun=true, can't book)
+router.post("/scrape/dry-run/:targetId", async (req, res): Promise<void> => {
+  const params = CheckAndBookParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [target] = await db
+    .select()
+    .from(activityTargetsTable)
+    .where(eq(activityTargetsTable.id, params.data.targetId));
+
+  if (!target) {
+    res.status(404).json({ error: "Target not found" });
+    return;
+  }
+
+  req.log.info(
+    { targetId: target.id, activityName: target.activityName, level: target.level },
+    "Starting dry-run check-and-book"
+  );
+
+  const result = await findAndBook({
+    activityName: target.activityName,
+    level: target.level,
+    classDay: target.classDay ?? null,
+    classTime: target.classTime ?? null,
+    dryRun: true,
+  });
+
+  const logOutcome = ((): string => {
+    switch (result.outcome) {
+      case "success": return "success";
+      case "no_spot": return "no_spot";
+      case "registration_not_open": return "no_spot";
+      case "scraper_error": return "scraper_error";
+      case "not_configured": return "scraper_error";
+      default: return "failed";
+    }
+  })();
+
+  const [logEntry] = await db
+    .insert(bookingLogTable)
+    .values({
+      targetId: target.id,
+      activityName: target.activityName,
+      level: target.level,
+      outcome: logOutcome,
+      confirmationNumber: null,
+      classDate: result.classDate ?? null,
+      classTime: result.classTime ?? null,
+      notes: `[DRY RUN] ${result.message}`,
+    })
+    .returning();
+
+  await db
+    .update(activityTargetsTable)
+    .set({ lastCheckedAt: new Date() })
+    .where(eq(activityTargetsTable.id, target.id));
+
+  res.json(
+    CheckAndBookResponse.parse({
+      outcome: result.outcome,
+      message: result.message,
+      confirmationNumber: null,
+      classDate: result.classDate ?? null,
+      classTime: result.classTime ?? null,
+      dryRun: true,
+      logEntryId: logEntry?.id ?? null,
     })
   );
 });

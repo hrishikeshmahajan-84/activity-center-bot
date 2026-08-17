@@ -902,6 +902,78 @@ export function useGetScraperStatus<TData = Awaited<ReturnType<typeof getScraper
 
 
 
+export const getDryRunCheckAndBookUrl = (targetId: number,) => {
+
+
+
+
+  return `/api/scrape/dry-run/${targetId}`
+}
+
+/**
+ * Runs the full checkout flow — login, find activity, participant selection, cart — but stops before the final confirm button. Safe to call anytime; nothing is booked.
+ * @summary Dry-run the booking flow for a target (no API key needed, stops before final payment)
+ */
+export const dryRunCheckAndBook = async (targetId: number, options?: Parameters<typeof customFetch>[1]): Promise<BookingAttemptResult> => {
+
+  return customFetch<BookingAttemptResult>(getDryRunCheckAndBookUrl(targetId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDryRunCheckAndBookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dryRunCheckAndBook>>, TError,{targetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dryRunCheckAndBook>>, TError,{targetId: number}, TContext> => {
+
+const mutationKey = ['dryRunCheckAndBook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dryRunCheckAndBook>>, {targetId: number}> = (props) => {
+          const {targetId} = props ?? {};
+
+          return  dryRunCheckAndBook(targetId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DryRunCheckAndBookMutationResult = NonNullable<Awaited<ReturnType<typeof dryRunCheckAndBook>>>
+
+    export type DryRunCheckAndBookMutationError = ErrorType<void>
+
+    /**
+ * @summary Dry-run the booking flow for a target (no API key needed, stops before final payment)
+ */
+export const useDryRunCheckAndBook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dryRunCheckAndBook>>, TError,{targetId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof dryRunCheckAndBook>>,
+        TError,
+        {targetId: number},
+        TContext
+      > => {
+      return useMutation(getDryRunCheckAndBookMutationOptions(options));
+    }
+
 export const getCheckAndBookUrl = (targetId: number,) => {
 
 
