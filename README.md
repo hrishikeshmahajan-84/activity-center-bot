@@ -2,6 +2,14 @@
 
 A personal automation tool that books City of Burnaby rec classes the moment registration opens — so Agastya never misses Gliders 2 or Orca swimming.
 
+## Access the app
+
+**Live app:** [active-communities-bot.replit.app](https://active-communities-bot.replit.app)
+
+**Replit workspace:** [Join on Replit](https://replit.com/join#t=stkwxfarqpvddjk-hrishimahajan)
+
+---
+
 ## What it does
 
 The City of Burnaby opens registration for popular classes (swimming, ice skating) at a fixed time on a fixed date. Spots fill in seconds. This bot:
