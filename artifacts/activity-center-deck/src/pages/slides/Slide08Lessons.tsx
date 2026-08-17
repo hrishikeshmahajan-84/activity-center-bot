@@ -66,11 +66,11 @@ export default function Slide08Lessons() {
           {/* Lesson 4 */}
           <div style={{ backgroundColor: "#FAFAFA", border: "1px solid #E0E0E0", padding: "2vw" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "1vw", marginBottom: "1.5vh" }}>
-              <div style={{ width: "0.5vw", height: "3vh", backgroundColor: "#3D5A80", flexShrink: 0 }} />
-              <h3 style={{ color: "#111111", fontSize: "1.4vw", fontWeight: 700, margin: 0 }}>Prod and dev are different worlds</h3>
+              <div style={{ width: "0.5vw", height: "3vh", backgroundColor: "#EE6C4D", flexShrink: 0 }} />
+              <h3 style={{ color: "#111111", fontSize: "1.4vw", fontWeight: 700, margin: 0 }}>Match deployment type to workload</h3>
             </div>
             <p style={{ color: "#666666", fontSize: "1.1vw", lineHeight: 1.6, margin: 0, textWrap: "pretty" }}>
-              The live environment always has surprises — read-only databases, missing secrets, stale data. Idempotent startup reconciliation that self-heals on every boot beats manual production hotfixes every time.
+              Autoscale is right for APIs and dashboards — wrong for bots. On registration day the server was asleep at 10:00 AM and missed the window entirely. A scheduler running inside an Autoscale process is not a scheduler; it's a wish. Always-on hosting (Reserved VM) is non-negotiable for time-critical automation.
             </p>
           </div>
 
